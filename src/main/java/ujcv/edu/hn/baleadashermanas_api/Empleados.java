@@ -5,11 +5,12 @@
  */
 package ujcv.edu.hn.baleadashermanas_api;
 
-import baleadashermanas.BD.ConexionBD;
+import com.google.gson.Gson;
 import com.placeholder.PlaceHolder;
 import java.awt.Color;
 import java.awt.HeadlessException;
 import java.awt.Toolkit;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -24,7 +25,14 @@ import java.util.regex.Pattern;
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Response;
 import org.apache.commons.codec.digest.DigestUtils;
+import ujcv.edu.hn.baleadashermanas_api.model.Empleado;
 
 /**
  *
@@ -32,8 +40,11 @@ import org.apache.commons.codec.digest.DigestUtils;
  */
 public class Empleados extends javax.swing.JFrame {
     int click = 0;
-    Statement stmt = null;
-    Connection con = null;
+    String res = "";
+    String URL = "http://192.168.178.34:8080/api/v1/empleado";
+    boolean existeEmpleado = false;
+    boolean existeUsuario = false;
+    Long idEmpleado = 0L;
     /**
      * Creates new form Empleados
      * @param nombreUsuario
@@ -44,7 +55,6 @@ public class Empleados extends javax.swing.JFrame {
         informacionGeneral();
         holders();
         lbl_nombreUsuario.setText(nombreUsuario);
-        this.con = ConexionBD.obtenerConexion();
         lbl_Dni.setVisible(false);
     }
     
@@ -55,7 +65,7 @@ public class Empleados extends javax.swing.JFrame {
     public final void informacionGeneral(){
         this.setTitle("Empleados");
         this.setLocationRelativeTo(null);
-        this.setIconImage(new ImageIcon(getClass().getResource("../Img/Titulo.png")).getImage());
+        this.setIconImage(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\Titulo.png").getImage());
     }
     
     public final void holders(){
@@ -74,47 +84,7 @@ public class Empleados extends javax.swing.JFrame {
            
     }
     
-    public void rellenar(){
-        String input = "";
-        input = JOptionPane.showInputDialog(this, "¿A quien desea buscar?","Consulta de empleado",JOptionPane.QUESTION_MESSAGE);
-        if(input == null){
-                JOptionPane.showMessageDialog(this,"La acción fue cancelada","¡AVISO!",JOptionPane.INFORMATION_MESSAGE);
-        }
-        else if(input.equals("")){ 
-            JOptionPane.showMessageDialog(this,"Favor de ingresar los datos del empleado\n que desea buscar","¡AVISO!",JOptionPane.INFORMATION_MESSAGE);
-        }
-        else{
-            String sql = "select * from empleado\n" +
-            "where dniempleado = '"+input+"' or primer_nombre_empleado ='"+input+"' or primer_apellido_empleado ='"+input+"'";     
-            try {
-                stmt = con.createStatement();
-                ResultSet rs = stmt.executeQuery(sql);
-                if(rs.next()){
-                    Locale locale = new Locale("es", "HN"); 
-                    NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(locale);
-                    txt_primerNombreEmpleado.setText(rs.getString("primer_nombre_empleado"));
-                    txt_segundoNombreEmpleado.setText(rs.getString("segundo_nombre_empleado"));
-                    txt_primerApellidoEmpleado.setText(rs.getString("primer_apellido_empleado"));
-                    txt_segundoApellidoEmpleado.setText(rs.getString("segundo_apellido_empleado"));
-                    txt_telefonoEmpleado.setText(rs.getString("telefono_empleado"));
-                    txt_emailEmpleado.setText(rs.getString("email_empleado"));
-                    txt_dniEmpleado.setText(rs.getString("dniempleado"));
-                    txt_usuarioEmpleado.setText(rs.getString("usuario")); 
-                    txt_contraseñaEmpleado.setText("");
-                    lbl_Dni.setText(rs.getString("dniempleado"));
-                    colorear();
-                    habilitarAccionesBuscar();
-                }
-                else{
-                    JOptionPane.showMessageDialog(null,"¡No se encuentra el empleado! Por favor verifique sí, lo escribio correctamente");
-                }
-            } catch (SQLException ex) {
-                Logger.getLogger(Empleados.class.getName()).log(Level.SEVERE, null, ex);
-            }   
-            
-              }
-    }
-    
+   
     public void limpiar(){
         txt_primerNombreEmpleado.setText("");
         txt_segundoNombreEmpleado.setText("");
@@ -216,41 +186,77 @@ public class Empleados extends javax.swing.JFrame {
         return false;
     }
     
-    public boolean existeUsuario(){
-        try {
-            Statement st = con.createStatement();
-            String sql = "Select usuario from empleado where usuario = '"+txt_usuarioEmpleado.getText()+"'";
-            ResultSet rs = st.executeQuery(sql);
-            if(rs.next()){
-                JOptionPane.showMessageDialog(null, "Ya existe el nombre de usuario: "+txt_usuarioEmpleado.getText()+" ", "Nombre de usuario ¡Ya existe!", JOptionPane.INFORMATION_MESSAGE);
-                return true;
-            }
-            else{
-                return false;
-            }
-        } catch (SQLException ex) {
-            Logger.getLogger(Empleados.class.getName()).log(Level.SEVERE, null, ex);
+    public void existeDNI(String dni){
+        try{
+                   existeEmpleado = false;
+                   Client client= ClientBuilder.newClient();
+                   
+                   String path = URL+"/dni/"+dni;
+                   WebTarget target = client.target(path);
+
+                   Invocation.Builder solicitud =target.request();
+
+                   Response get = solicitud.get();
+
+                   String responseJson = get.readEntity(String.class);
+
+                   switch (get.getStatus()) {
+                       case 200:
+                           res = "El DNI ya existe";
+                           existeEmpleado = true;
+                           break;
+                       case 405:
+                           res = "El DNI no existe";
+                           existeEmpleado = false;
+                           break;
+                   }
+               }catch(Exception e){
+                   res = e.getMessage();
+               }
+               finally{
+             if(!existeEmpleado){        
+                 return;        
+             }
+             JOptionPane.showMessageDialog(this, res);
         }
-        return false;
     }
     
-    public boolean existeEmpleado(){
-        try {
-            Statement st = con.createStatement();
-            String sql = "Select dniempleado from empleado where dniempleado = '"+txt_dniEmpleado.getText()+"'";
-            ResultSet rs = st.executeQuery(sql);
-            if(rs.next()){
-                JOptionPane.showMessageDialog(null, "El DNI: "+txt_dniEmpleado.getText()+" ya existe", "Este DNI ¡Ya existe!", JOptionPane.INFORMATION_MESSAGE);
-                return true;
-            }
-            else{
-                return false;
-            }
-        } catch (SQLException ex) {
-            Logger.getLogger(Empleados.class.getName()).log(Level.SEVERE, null, ex);
+    public void existeUsuario(String usuario){
+        try{
+                   existeUsuario = false;
+                   Client client= ClientBuilder.newClient();
+                   
+                   String path = URL+"/"+usuario;
+                   WebTarget target = client.target(path);
+
+                   Invocation.Builder solicitud =target.request();
+
+                   Response get = solicitud.get();
+
+                   String responseJson = get.readEntity(String.class);
+
+                   switch (get.getStatus()) {
+                       case 200:
+                           res = "El usuario ya existe";
+                           existeUsuario = true;
+                           break;
+                       case 405:
+                           res = "El usuario no existe";
+                           existeUsuario = false;
+                           break;
+                   }
+               }catch(Exception e){
+                   res = e.getMessage();
+               }
+               finally{
+             if(!existeUsuario){        
+                 return;        
+             }
+             JOptionPane.showMessageDialog(this, res);
         }
-        return false;
     }
+    
+   
       
      private boolean validarLongitudTelefono(JTextField texto, int longitud){
        if(texto.getText().length() == longitud){
@@ -306,6 +312,72 @@ public class Empleados extends javax.swing.JFrame {
          btn_eliminar.setEnabled(false);
          txt_primerNombreEmpleado.requestFocus();
      }
+     
+     public void getByDNI(String dni){
+        try{
+                   existeEmpleado = false;
+                   Client client= ClientBuilder.newClient();
+                   
+                   String path = URL+"/dni/"+dni;
+                   WebTarget target = client.target(path);
+
+                   Invocation.Builder solicitud =target.request();
+
+                   Response get = solicitud.get();
+
+                   String responseJson = get.readEntity(String.class);
+                   
+                   Empleado data = new Gson().fromJson(responseJson, Empleado.class);
+
+                   switch (get.getStatus()) {
+                       case 200:
+                           res = "Datos recuperados";                
+                           txt_primerNombreEmpleado.setText(data.getPrimer_nombre_empleado());
+                           txt_segundoNombreEmpleado.setText(data.getSegundo_nombre_empleado());
+                           txt_primerApellidoEmpleado.setText(data.getPrimer_apellido_empleado());
+                           txt_segundoApellidoEmpleado.setText(data.getSegundo_apellido_empleado());
+                           txt_telefonoEmpleado.setText(data.getTelefono_empleado());
+                           txt_emailEmpleado.setText(data.getEmail_empleado());
+                           txt_dniEmpleado.setText(data.getDniempleado());
+                           txt_usuarioEmpleado.setText(data.getUsuario()); 
+                           txt_contraseñaEmpleado.setText("");
+                           lbl_Dni.setText(data.getDniempleado());
+                           idEmpleado = data.getIdempleado();
+                           existeEmpleado = true;
+                           break;
+                       default:
+                           res = "El DNI no existe";
+                           existeEmpleado = false;
+                           JOptionPane.showMessageDialog(this, res);
+                           break;
+                   }
+               }catch(Exception e){
+                   res = e.getMessage();
+               }
+    }
+     
+     public void rellenar(){
+        String input = "";
+        input = JOptionPane.showInputDialog(this, "¿A quien desea buscar?","Consulta de empleado",JOptionPane.QUESTION_MESSAGE);
+        if(input == null){
+                JOptionPane.showMessageDialog(this,"La acción fue cancelada","¡AVISO!",JOptionPane.INFORMATION_MESSAGE);
+        }
+        else if(input.equals("")){ 
+            JOptionPane.showMessageDialog(this,"Favor de ingresar los datos del empleado\n que desea buscar","¡AVISO!",JOptionPane.INFORMATION_MESSAGE);
+        }
+        else{
+            try {
+                getByDNI(input);
+                colorear();
+                habilitarAccionesBuscar();
+                
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, e.getMessage());
+            }  
+     }
+            
+   
+    }
 
 
     /**
@@ -535,7 +607,7 @@ public class Empleados extends javax.swing.JFrame {
             }
         });
 
-        lbl_home.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/home-icon-silhouette.png"))); // NOI18N
+        lbl_home.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\home-icon-silhouette.png"));
         lbl_home.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         lbl_home.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
@@ -543,7 +615,7 @@ public class Empleados extends javax.swing.JFrame {
             }
         });
 
-        lbl_usuario.setIcon(new javax.swing.ImageIcon(getClass().getResource("/ujcv/edu/hn/Img/profile.png"))); // NOI18N
+        lbl_usuario.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\profile.png"));
         lbl_usuario.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
 
         lbl_datosInicioEmpleado.setFont(new java.awt.Font("Roboto Black", 0, 48)); // NOI18N
@@ -565,70 +637,70 @@ public class Empleados extends javax.swing.JFrame {
             }
         });
 
-        lbl_segundoNombreEmpleado.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/name.png"))); // NOI18N
+        lbl_segundoNombreEmpleado.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\name.png"));
         lbl_segundoNombreEmpleado.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_segundoNombreEmpleadoMousePressed(evt);
             }
         });
 
-        lbl_contraseña.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/candado-cerrado.png"))); // NOI18N
+        lbl_contraseña.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\candado-cerrado.png"));
         lbl_contraseña.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_contraseñaMousePressed(evt);
             }
         });
 
-        lbl_telefonoEmpleado.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/phone-call.png"))); // NOI18N
+        lbl_telefonoEmpleado.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\phone-call.png"));
         lbl_telefonoEmpleado.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_telefonoEmpleadoMousePressed(evt);
             }
         });
 
-        lbl_primerApellidoEmpleado.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/name2.png"))); // NOI18N
+        lbl_primerApellidoEmpleado.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\name2.png"));
         lbl_primerApellidoEmpleado.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_primerApellidoEmpleadoMousePressed(evt);
             }
         });
 
-        lbl_segundoApellidoEmpleado.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/name2.png"))); // NOI18N
+        lbl_segundoApellidoEmpleado.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\name2.png"));
         lbl_segundoApellidoEmpleado.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_segundoApellidoEmpleadoMousePressed(evt);
             }
         });
 
-        lbl_primerNombreEmpleado.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/name.png"))); // NOI18N
+        lbl_primerNombreEmpleado.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\name.png"));
         lbl_primerNombreEmpleado.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_primerNombreEmpleadoMousePressed(evt);
             }
         });
 
-        lbl_emailEmpleado.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/email.png"))); // NOI18N
+        lbl_emailEmpleado.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\email.png"));
         lbl_emailEmpleado.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_emailEmpleadoMousePressed(evt);
             }
         });
 
-        lbl_dniEmpleado.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/id-card.png"))); // NOI18N
+        lbl_dniEmpleado.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\id-card.png"));
         lbl_dniEmpleado.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_dniEmpleadoMousePressed(evt);
             }
         });
 
-        lbl_nombreUsuarioEmpleado.setIcon(new javax.swing.ImageIcon("C:\\Users\\cmcha\\Documents\\NetBeansProjects\\BaleadasHermanas\\BaleadasHermanas\\src\\Img\\man-user.png")); // NOI18N
+        lbl_nombreUsuarioEmpleado.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\man-user.png"));
         lbl_nombreUsuarioEmpleado.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_nombreUsuarioEmpleadoMousePressed(evt);
             }
         });
 
-        lbl_vercontraseña.setIcon(new javax.swing.ImageIcon("C:\\Users\\cmcha\\Documents\\NetBeansProjects\\BaleadasHermanas\\BaleadasHermanas\\src\\Img\\ojo-cerrado.png")); // NOI18N
+        lbl_vercontraseña.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\ojo-cerrado.png"));
         lbl_vercontraseña.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         lbl_vercontraseña.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -688,13 +760,15 @@ public class Empleados extends javax.swing.JFrame {
                                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                                             .addComponent(txt_usuarioEmpleado, javax.swing.GroupLayout.DEFAULT_SIZE, 434, Short.MAX_VALUE)
-                                            .addComponent(txt_emailEmpleado)
                                             .addComponent(txt_contraseñaEmpleado))
                                         .addGap(18, 18, 18)
                                         .addComponent(lbl_vercontraseña))
                                     .addGroup(jPanel1Layout.createSequentialGroup()
                                         .addGap(2, 2, 2)
-                                        .addComponent(txt_dniEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, 434, javax.swing.GroupLayout.PREFERRED_SIZE))))))
+                                        .addComponent(txt_dniEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, 434, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                    .addGroup(jPanel1Layout.createSequentialGroup()
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(txt_emailEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, 434, javax.swing.GroupLayout.PREFERRED_SIZE))))))
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addGap(343, 343, 343)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -824,10 +898,10 @@ public class Empleados extends javax.swing.JFrame {
         click++;
         if(click%2 != 0){
 
-            lbl_vercontraseña.setIcon(new javax.swing.ImageIcon("src\\Img\\ojo.png"));
+            lbl_vercontraseña.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\ojo.png"));
             txt_contraseñaEmpleado.setEchoChar((char)0);
         }else{
-            lbl_vercontraseña.setIcon(new javax.swing.ImageIcon("src\\Img\\ojo-cerrado.png"));
+            lbl_vercontraseña.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\ojo-cerrado.png"));
             txt_contraseñaEmpleado.setEchoChar('*');
         }
         // TODO add your handling code here:
@@ -907,27 +981,38 @@ public class Empleados extends javax.swing.JFrame {
 
     private void btn_eliminarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_eliminarActionPerformed
         btn_buscar.setBackground(new Color(40,74,172));
-        String nombreEmpleado = txt_primerNombreEmpleado.getText() + " " + txt_primerApellidoEmpleado.getText();
+         String nombreEmpleado = txt_primerNombreEmpleado.getText() + " " + txt_primerApellidoEmpleado.getText();
         if(JOptionPane.showConfirmDialog(null,"¿Está seguro que desea actualizar el registro del empleado "+nombreEmpleado+"?","Confirmación de eliminación",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE
         )==JOptionPane.YES_OPTION){
 
             try{
-                PreparedStatement ps;
-                ResultSet rs;
-                ps=con.prepareStatement("Delete empleado\n" +
-                    "where dniempleado =?");
-                ps.setString(1, lbl_Dni.getText());
-                int res= ps.executeUpdate();
-                if(res >0){
-                    JOptionPane.showMessageDialog(this, "Empleado eliminado");
-                    restablecer();
-                }
+               Client client= ClientBuilder.newClient();
+
+                   WebTarget target = client.target(URL + "/delete/"+idEmpleado);
+
+                   //Invocation.Builder solicitud =target.queryParam("id",4).request();
+                   Invocation.Builder solicitud =target.request();
+
+                   Response delete = solicitud.delete();
+
+                   String responseJson = delete.readEntity(String.class);
+
+                   switch (delete.getStatus()) {
+                       case 200:
+                           res = "Empleado eliminado";
+                           JOptionPane.showMessageDialog(null,res);
+                           break;
+                       default:
+                           res = "Error";
+                           JOptionPane.showMessageDialog(null,res);
+                           break;
+                   }
 
             }catch(Exception e){
 
             }
 
-        }
+        } 
         // TODO add your handling code here:
     }//GEN-LAST:event_btn_eliminarActionPerformed
 
@@ -982,68 +1067,103 @@ public class Empleados extends javax.swing.JFrame {
                 for (int i = 0; i < c.length; i++) {
                     contraseñaFinal  += String.valueOf(c[i]);
                 }
-
+                
+                
                 String contraseñaEncriptada=DigestUtils.md5Hex(contraseñaFinal);
-
-                PreparedStatement ps;
-                ResultSet rs;
+                
                 int telefono = Integer.parseInt(txt_telefonoEmpleado.getText());
+                                
                 if(contraseñaFinal.equals("")){
-                    ps=con.prepareStatement("Update empleado\n" +
-                        "Set primer_nombre_empleado = ?,\n" +
-                        "segundo_nombre_empleado = ?,\n" +
-                        "primer_apellido_empleado = ?,\n" +
-                        "segundo_apellido_empleado = ?," +
-                        "telefono_empleado =?,\n" +
-                        "email_empleado = ?,\n" +
-                        "dniempleado = ?,\n" +
-                        "usuario =?\n" +
-                        "where dniempleado =?");
-                    ps.setString(1, txt_primerNombreEmpleado.getText());
-                    ps.setString(2, txt_segundoNombreEmpleado.getText());
-                    ps.setString(3, txt_primerApellidoEmpleado.getText());
-                    ps.setString(4, txt_segundoApellidoEmpleado.getText());
-                    ps.setInt(5, telefono);
-                    ps.setString(6, txt_emailEmpleado.getText());
-                    ps.setString(7, txt_dniEmpleado.getText());
-                    ps.setString(8, txt_usuarioEmpleado.getText());
-                    ps.setString(9, lbl_Dni.getText());
-                    int res= ps.executeUpdate();
-                    if(res >0){
-                        JOptionPane.showMessageDialog(this, "Empleado actualizado");
-                        restablecer();
-                    }
-                }
-                else{
+                   Client client= ClientBuilder.newClient();
 
-                    ps=con.prepareStatement("Update empleado\n" +
-                        "Set primer_nombre_empleado = ?,\n" +
-                        "segundo_nombre_empleado = ?,\n" +
-                        "primer_apellido_empleado = ?,\n" +
-                        "segundo_apellido_empleado = ?," +
-                        "telefono_empleado = ?,\n" +
-                        "email_empleado = ?,\n" +
-                        "dniempleado = ?,\n" +
-                        "usuario = ?,\n" +
-                        "contraseña = ?\n" +
-                        "where dniempleado =?");
-                    ps.setString(1, txt_primerNombreEmpleado.getText());
-                    ps.setString(2, txt_segundoNombreEmpleado.getText());
-                    ps.setString(3, txt_primerApellidoEmpleado.getText());
-                    ps.setString(4, txt_segundoApellidoEmpleado.getText());
-                    ps.setInt(5, telefono);
-                    ps.setString(6, txt_emailEmpleado.getText());
-                    ps.setString(7, txt_dniEmpleado.getText());
-                    ps.setString(8, txt_usuarioEmpleado.getText());
-                    ps.setString(9, contraseñaEncriptada);
-                    ps.setString(10, lbl_Dni.getText());
-                    int res= ps.executeUpdate();
-                    if(res >0){
-                        JOptionPane.showMessageDialog(this, "Empleado actualizado");
-                    }
-                }
+                   WebTarget target = client.target(URL + "");
 
-            }catch(HeadlessException | SQLException e){
+                   Invocation.Builder solicitud =target.request();
+
+                   Empleado empleado = new Empleado();
+                   empleado.setIdempleado(idEmpleado);
+                   empleado.setPrimer_nombre_empleado(txt_primerNombreEmpleado.getText());
+                   empleado.setSegundo_nombre_empleado(txt_segundoNombreEmpleado.getText());
+                   empleado.setPrimer_apellido_empleado(txt_primerApellidoEmpleado.getText());
+                   empleado.setSegundo_apellido_empleado(txt_segundoApellidoEmpleado.getText());
+                   empleado.setTelefono_empleado(txt_telefonoEmpleado.getText());
+                   empleado.setEmail_empleado(txt_emailEmpleado.getText());
+                   empleado.setDniempleado(txt_dniEmpleado.getText());
+                   empleado.setUsuario(txt_usuarioEmpleado.getText());
+                   empleado.setContraseña("");
+
+                   Gson gson = new Gson();
+                   String jsonString = gson.toJson(empleado);
+
+                   Response put = solicitud.put(Entity.json(jsonString));
+
+
+                   String responseJson = put.readEntity(String.class);
+                   Empleado data = new Gson().fromJson(responseJson, Empleado.class);
+
+                   JOptionPane.showMessageDialog(null,put.getStatus());
+
+                   switch (put.getStatus()) {
+                       case 200:
+                           res = "Empleado actualizado";
+                           restablecer();
+                           JOptionPane.showMessageDialog(null,res);
+                           break;
+                       default:
+                           res = "Error";
+                           JOptionPane.showMessageDialog(null,res);
+                           break;
+                   }
+
+                }
+                else{     
+                        
+                   Client client= ClientBuilder.newClient();
+
+                   WebTarget target = client.target(URL + "");
+
+                   Invocation.Builder solicitud =target.request();
+
+                   Empleado empleado = new Empleado();
+                   
+                   empleado.setIdempleado(idEmpleado);
+                   empleado.setPrimer_nombre_empleado(txt_primerNombreEmpleado.getText());
+                   empleado.setSegundo_nombre_empleado(txt_segundoNombreEmpleado.getText());
+                   empleado.setPrimer_apellido_empleado(txt_primerApellidoEmpleado.getText());
+                   empleado.setSegundo_apellido_empleado(txt_segundoApellidoEmpleado.getText());
+                   empleado.setTelefono_empleado(txt_telefonoEmpleado.getText());
+                   empleado.setEmail_empleado(txt_emailEmpleado.getText());
+                   empleado.setDniempleado(txt_dniEmpleado.getText());
+                   empleado.setUsuario(txt_usuarioEmpleado.getText());
+                   empleado.setContraseña(contraseñaEncriptada);
+
+                   Gson gson = new Gson();
+                   String jsonString = gson.toJson(empleado);
+
+                   Response put = solicitud.put(Entity.json(jsonString));
+
+
+                   String responseJson = put.readEntity(String.class);
+                   Empleado data = new Gson().fromJson(responseJson, Empleado.class);
+
+                   JOptionPane.showMessageDialog(null,put.getStatus());
+
+                   switch (put.getStatus()) {
+                       case 200:
+                           res = "Empleado actualizado";
+                           restablecer();
+                           JOptionPane.showMessageDialog(null,res);
+                           break;
+                       default:
+                           res = "Error";
+                           JOptionPane.showMessageDialog(null,res);
+                           break;
+                   }
+
+                }
+       
+            }
+                catch(Exception e){
 
             }
         }
@@ -1069,23 +1189,22 @@ public class Empleados extends javax.swing.JFrame {
                 return;
             }
 
-            if(existeEmpleado()){
-                return;
-            }
-
-            if(existeUsuario()){
-                return;
-            }
-
             if(!validarLongitudTelefono(txt_telefonoEmpleado,8)){
                 return;
             }
 
             if(!validarDni(txt_dniEmpleado.getText())){
                 return;
-
             }
-
+            existeDNI(txt_dniEmpleado.getText());
+            if(existeEmpleado){
+                return;
+            }
+            existeUsuario(txt_usuarioEmpleado.getText());
+            if(existeUsuario){
+                return;
+            }
+            
             char[] c = txt_contraseñaEmpleado.getPassword();
             String contraseñaFinal ="";
             for (int i = 0; i < c.length; i++) {
@@ -1093,27 +1212,47 @@ public class Empleados extends javax.swing.JFrame {
             }
 
             String contraseñaEncriptada=DigestUtils.md5Hex(contraseñaFinal);
-            PreparedStatement ps;
-            ResultSet rs;
+                           try{
+                   Client client= ClientBuilder.newClient();
 
-            ps=con.prepareStatement("INSERT INTO empleado (primer_nombre_empleado, segundo_nombre_empleado, primer_apellido_empleado, segundo_apellido_empleado,"
-                + "telefono_empleado, email_empleado,dniempleado,usuario,contraseña)"
-                + "VALUES(?,?,?,?,?,?,?,?,?)");
-            ps.setString(1, txt_primerNombreEmpleado.getText());
-            ps.setString(2, txt_segundoNombreEmpleado.getText());
-            ps.setString(3, txt_primerApellidoEmpleado.getText());
-            ps.setString(4, txt_segundoApellidoEmpleado.getText());
-            ps.setString(5, txt_telefonoEmpleado.getText());
-            ps.setString(6, txt_emailEmpleado.getText());
-            ps.setString(7, txt_dniEmpleado.getText());
-            ps.setString(8, txt_usuarioEmpleado.getText());
-            ps.setString(9, contraseñaEncriptada);
-            int res= ps.executeUpdate();
-            if(res >0){
-                JOptionPane.showMessageDialog(this, "Empleado agregado");
-                restablecer();
-            }
+                   WebTarget target = client.target(URL + "/addempleado");
 
+                   Invocation.Builder solicitud =target.request();
+
+                   Empleado empleado = new Empleado();
+                   empleado.setPrimer_nombre_empleado(txt_primerNombreEmpleado.getText());
+                   empleado.setSegundo_nombre_empleado(txt_segundoNombreEmpleado.getText());
+                   empleado.setPrimer_apellido_empleado(txt_primerApellidoEmpleado.getText());
+                   empleado.setSegundo_apellido_empleado(txt_segundoApellidoEmpleado.getText());
+                   empleado.setTelefono_empleado(txt_telefonoEmpleado.getText());
+                   empleado.setEmail_empleado(txt_emailEmpleado.getText());
+                   empleado.setDniempleado(txt_dniEmpleado.getText());
+                   empleado.setUsuario(txt_usuarioEmpleado.getText());
+                   empleado.setContraseña(contraseñaEncriptada);
+
+                   Gson gson = new Gson();
+                   String jsonString = gson.toJson(empleado);
+
+                   Response post = solicitud.post(Entity.json(jsonString));
+
+
+                   String responseJson = post.readEntity(String.class);
+                   Empleado data = new Gson().fromJson(responseJson, Empleado.class);           
+
+                   switch (post.getStatus()) {
+                       case 201:
+                           res = "Empleado agregado exitosamente";
+                           JOptionPane.showMessageDialog(null,res);
+                           break;
+                       default:
+                           res = "Error";
+                           JOptionPane.showMessageDialog(null,res);
+                           break;
+                   }
+               }catch(Exception e){
+                   res = e.toString();
+               }
+                           
         }catch(Exception e){
 
         }

@@ -5,21 +5,21 @@
  */
 package ujcv.edu.hn.baleadashermanas_api;
 
-import baleadashermanas.BD.ConexionBD;
 import com.formdev.flatlaf.*;
 import com.placeholder.PlaceHolder;
 import java.awt.Color;
-import java.awt.Toolkit;
-import java.net.URL;
-import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.ImageIcon;
-import javax.swing.JOptionPane;
 import javax.swing.UIManager;
+import javax.swing.JOptionPane;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Response;
 import org.apache.commons.codec.digest.DigestUtils;
 
 /**
@@ -27,17 +27,19 @@ import org.apache.commons.codec.digest.DigestUtils;
  * @author Carlos
  */
 public class Login extends javax.swing.JFrame {
-    Connection con;
     int click = 0;
     int clickContraseñaOlvidada = 0;
+    String res = "";
+    String URL = "http://192.168.178.34:8080/api/v1/empleado";
+    int login = 0;
+    boolean estaVacio = false;
     
     /**
      * Creates new form Login
+     * @throws java.sql.SQLException
      */
     public Login() throws SQLException {
-       
        init();
-       this.con = ConexionBD.obtenerConexion();
     }
     
     
@@ -51,7 +53,8 @@ public class Login extends javax.swing.JFrame {
     public void informacionGeneral(){
         this.setTitle("Login");
         this.setLocationRelativeTo(null);
-        this.setIconImage(new ImageIcon(getClass().getResource("../Img/Titulo.png")).getImage());
+        this.setIconImage(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\Titulo.png").getImage());
+       
     }
     
 
@@ -144,14 +147,14 @@ public class Login extends javax.swing.JFrame {
             }
         });
 
-        lbl_contraseña.setIcon(new javax.swing.ImageIcon("C:\\Users\\cmcha\\Documents\\NetBeansProjects\\BaleadasHermanas\\BaleadasHermanas\\src\\Img\\candado-cerrado.png")); // NOI18N
+        lbl_contraseña.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\candado-cerrado.png"));
 
-        lbl_usuario.setIcon(new javax.swing.ImageIcon("C:\\Users\\cmcha\\Documents\\NetBeansProjects\\BaleadasHermanas\\BaleadasHermanas\\src\\Img\\man-user.png")); // NOI18N
+        lbl_usuario.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\man-user.png"));
 
         txt_contraseña.setFont(new java.awt.Font("Roboto", 0, 24)); // NOI18N
         txt_contraseña.setEchoChar('*');
 
-        lbl_vercontraseña.setIcon(new javax.swing.ImageIcon("C:\\Users\\cmcha\\Documents\\NetBeansProjects\\BaleadasHermanas\\BaleadasHermanas\\src\\Img\\ojo-cerrado.png")); // NOI18N
+        lbl_vercontraseña.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\ojo-cerrado.png"));
         lbl_vercontraseña.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         lbl_vercontraseña.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -167,21 +170,21 @@ public class Login extends javax.swing.JFrame {
                 .addGap(15, 15, 15)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(lbl_contraseña, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(lbl_usuario, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                        .addGap(18, 18, 18)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(lbl_usuario, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(lbl_contraseña, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(txt_usuario)
-                            .addComponent(txt_contraseña, javax.swing.GroupLayout.DEFAULT_SIZE, 415, Short.MAX_VALUE))
-                        .addGap(8, 8, 8)
-                        .addComponent(lbl_vercontraseña, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addContainerGap())
+                            .addComponent(txt_contraseña, javax.swing.GroupLayout.PREFERRED_SIZE, 415, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(18, 18, 18)
+                        .addComponent(lbl_vercontraseña)
+                        .addGap(28, 28, 28))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
                         .addComponent(lbl_contraseñaOlvidada)
                         .addGap(109, 109, 109))))
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                .addContainerGap(40, Short.MAX_VALUE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
                         .addComponent(lbl_titulo)
@@ -196,16 +199,19 @@ public class Login extends javax.swing.JFrame {
                 .addGap(55, 55, 55)
                 .addComponent(lbl_titulo, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(46, 46, 46)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(txt_usuario, javax.swing.GroupLayout.PREFERRED_SIZE, 69, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(lbl_usuario, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGap(44, 44, 44)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(lbl_vercontraseña, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(lbl_contraseña, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(txt_contraseña, javax.swing.GroupLayout.PREFERRED_SIZE, 67, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGap(45, 45, 45)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addComponent(lbl_usuario, javax.swing.GroupLayout.PREFERRED_SIZE, 69, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(44, 44, 44)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(lbl_vercontraseña, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(lbl_contraseña, javax.swing.GroupLayout.PREFERRED_SIZE, 67, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(45, 45, 45))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                        .addComponent(txt_usuario, javax.swing.GroupLayout.PREFERRED_SIZE, 69, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(44, 44, 44)
+                        .addComponent(txt_contraseña, javax.swing.GroupLayout.PREFERRED_SIZE, 67, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                 .addComponent(btn_ingresar, javax.swing.GroupLayout.PREFERRED_SIZE, 67, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(27, 27, 27)
                 .addComponent(lbl_contraseñaOlvidada)
@@ -217,7 +223,7 @@ public class Login extends javax.swing.JFrame {
         kGradientPanel1Layout.setHorizontalGroup(
             kGradientPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, kGradientPanel1Layout.createSequentialGroup()
-                .addContainerGap(393, Short.MAX_VALUE)
+                .addContainerGap(423, Short.MAX_VALUE)
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(396, 396, 396))
         );
@@ -246,39 +252,57 @@ public class Login extends javax.swing.JFrame {
 
     private void btn_ingresarMousePressed(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btn_ingresarMousePressed
         btn_ingresar.setBackground(new Color(40,74,172));
-       
-       try{
-            String usuario = txt_usuario.getText();
-            char[] c = txt_contraseña.getPassword();
-            String contraseñaFinal ="";
-            for (int i = 0; i < c.length; i++) {
-                contraseñaFinal  += String.valueOf(c[i]);
-            }
+        try{
+                    estaVacio = false;
+                    if(isEmpty()){
+                        getToolkit().beep();
+                        JOptionPane.showMessageDialog(null, "Por favor llene todos los campos.", "Ingrese sus datos", JOptionPane.INFORMATION_MESSAGE);
+                        estaVacio = true;
+                        return;
+                    }
+                    Client client= ClientBuilder.newClient();
+                    String usuario = txt_usuario.getText();
+                    char[] c = txt_contraseña.getPassword();
+                    String contraseñaFinal ="";
+                    for (int i = 0; i < c.length; i++) {
+                        contraseñaFinal  += String.valueOf(c[i]);
+                    }
 
-            String contraseñaEncriptada=DigestUtils.md5Hex(contraseñaFinal);
-            String sql = "SELECT * from empleado where usuario ='" +usuario+ "' and contraseña='"+contraseñaEncriptada+"' COLLATE Latin1_General_CS_AS";
-            Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery(sql);
-            if(isEmpty()){
-                getToolkit().beep();
-                JOptionPane.showMessageDialog(null, "Por favor llene todos los campos.", "Ingrese sus datos", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-            if(rs.next()){
-                this.dispose();
-                Principal principal = new Principal(txt_usuario.getText());
-                principal.setVisible(true);
-            }
-            else{
-                Toolkit.getDefaultToolkit().beep();
-                txt_contraseña.setText("");
-                JOptionPane.showMessageDialog(null, "El nombre de usuario o contraseña no coinciden", "Las credenciales no concuerdan", JOptionPane.ERROR_MESSAGE);
-            }
+                  String contraseñaEncriptada=DigestUtils.md5Hex(contraseñaFinal);
+                   
+                   String path = URL+"/login/"+usuario+"/"+contraseñaEncriptada;
+                   WebTarget target = client.target(path);
 
-        }catch(Exception e){
+                   Invocation.Builder solicitud =target.request();
 
-        }    
-        
+                   Response get = solicitud.get();
+
+                   String responseJson = get.readEntity(String.class);
+
+                   switch (get.getStatus()) {
+                       case 200:
+                           res = "Bienvenido/a " + usuario;
+                           login++;
+                                              
+                           break;
+                       default:
+                           res = "El usuario o contraseña no coincide";
+                           break;
+                   }
+               }catch(Exception e){
+                   res = e.getMessage();
+               }
+               finally {
+                   if(estaVacio){
+                       return;
+                   }
+                   JOptionPane.showMessageDialog(null,res);
+                   if(login == 1){
+                       Principal principal = new Principal(txt_usuario.getText());
+                       principal.setVisible(true);
+                       this.dispose();
+                   }
+               }     
         // TODO add your handling code here:
     }//GEN-LAST:event_btn_ingresarMousePressed
 
@@ -300,10 +324,10 @@ public class Login extends javax.swing.JFrame {
         click++;
         if(click%2 != 0){
             
-            lbl_vercontraseña.setIcon(new javax.swing.ImageIcon("src\\Img\\ojo.png"));
+            lbl_vercontraseña.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\ojo.png"));
             txt_contraseña.setEchoChar((char)0);
         }else{
-            lbl_vercontraseña.setIcon(new javax.swing.ImageIcon("src\\Img\\ojo-cerrado.png"));
+            lbl_vercontraseña.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\ojo-cerrado.png"));
             txt_contraseña.setEchoChar('*');
         } 
         // TODO add your handling code here:

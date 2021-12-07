@@ -4,9 +4,6 @@
  * and open the template in the editor.
  */
 package ujcv.edu.hn.baleadashermanas_api;
-
-import baleadashermanas.BD.ConexionBD;
-import baleadashermanas.utilidades.Queries;
 import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.placeholder.PlaceHolder;
 import java.awt.Color;
@@ -61,14 +58,13 @@ public class Orden extends javax.swing.JFrame {
         informacionGeneral();
         txt_subtotal.requestFocus();
         lbl_nombreUsuario.setText(nombreUsuario);
-        this.con = ConexionBD.obtenerConexion();
         lbl_nombreProducto.setVisible(false);
         lbl_idFactura.setVisible(false);
         lbl_idCliente.setVisible(false);
         lbl_idProducto.setVisible(false);
         lbl_idDetalle.setVisible(false);     
-        buscarClientes();
-        clientesArray();
+        //buscarClientes();
+        //clientesArray();
     }
 
     public Orden() {
@@ -78,11 +74,11 @@ public class Orden extends javax.swing.JFrame {
     public void informacionGeneral() {
         this.setTitle("Ordenes");
         this.setLocationRelativeTo(null);
-        this.setIconImage(new ImageIcon(getClass().getResource("../Img/Titulo.png")).getImage());
+        this.setIconImage(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\Titulo.png").getImage());
         PlaceHolder holder;
     }
 
-    public void buscarClientes() {
+    /*public void buscarClientes() {
         ArrayList<String> lista = new ArrayList<String>();
         try {
             lista = new Queries().llenarClientes();
@@ -105,7 +101,7 @@ public class Orden extends javax.swing.JFrame {
         } catch (SQLException ex) {
             Logger.getLogger(Orden.class.getName()).log(Level.SEVERE, null, ex);
         }
-    }
+    }*/
 
     private void actualizarDatos() {
         try {

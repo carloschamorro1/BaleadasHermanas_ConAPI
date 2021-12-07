@@ -36,7 +36,7 @@ public class Principal extends javax.swing.JFrame {
      public final void informacionGeneral(){
         this.setTitle("Menú Principal");
         this.setLocationRelativeTo(null);
-        this.setIconImage(new ImageIcon(getClass().getResource("../Img/Titulo.png")).getImage());
+        this.setIconImage(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\Titulo.png").getImage());
     }
 
     /**
@@ -139,13 +139,13 @@ public class Principal extends javax.swing.JFrame {
             }
         });
 
-        lbl_usuario.setIcon(new javax.swing.ImageIcon(getClass().getResource("/ujcv/edu/hn/Img/profile.png"))); // NOI18N
+        lbl_usuario.setIcon(new javax.swing.ImageIcon("C:\\Users\\cmcha\\Documents\\NetBeansProjects\\BaleadasHermanas_API\\src\\main\\java\\ujcv\\edu\\hn\\Img\\profile.png")); // NOI18N
         lbl_usuario.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
 
         lbl_tituloEmpleados.setFont(new java.awt.Font("Roboto Black", 0, 48)); // NOI18N
         lbl_tituloEmpleados.setText("Menú Principal");
 
-        lbl_cerrarSesion.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/cerrar-sesion.png"))); // NOI18N
+        lbl_cerrarSesion.setIcon(new javax.swing.ImageIcon("C:\\Users\\cmcha\\Documents\\NetBeansProjects\\BaleadasHermanas_API\\src\\main\\java\\ujcv\\edu\\hn\\Img\\cerrar-sesion.png")); // NOI18N
         lbl_cerrarSesion.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         lbl_cerrarSesion.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {

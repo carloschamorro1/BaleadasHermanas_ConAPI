@@ -5,7 +5,6 @@
  */
 package ujcv.edu.hn.baleadashermanas_api;
 
-import baleadashermanas.BD.ConexionBD;
 import com.placeholder.PlaceHolder;
 import java.awt.Color;
 import java.awt.HeadlessException;
@@ -45,7 +44,6 @@ public class Clientes extends javax.swing.JFrame {
         informacionGeneral();
         holders();
         lbl_nombreUsuario.setText(nombreUsuario);
-        this.con = ConexionBD.obtenerConexion();
         lbl_Dni.setVisible(false);
     }
     
@@ -56,7 +54,7 @@ public class Clientes extends javax.swing.JFrame {
     public final void informacionGeneral(){
         this.setTitle("Clientes");
         this.setLocationRelativeTo(null);
-        this.setIconImage(new ImageIcon(getClass().getResource("../Img/Titulo.png")).getImage());
+        this.setIconImage(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\Titulo.png").getImage());
     }
     
     public final void holders(){

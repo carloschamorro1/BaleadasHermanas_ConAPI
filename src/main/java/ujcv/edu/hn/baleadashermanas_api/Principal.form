@@ -241,7 +241,7 @@
             <Component class="javax.swing.JLabel" name="lbl_usuario">
               <Properties>
                 <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/ujcv/edu/hn/Img/profile.png"/>
+                  <Image iconType="2" name="C:\Users\cmcha\Documents\NetBeansProjects\BaleadasHermanas_API\src\main\java\ujcv\edu\hn\Img\profile.png"/>
                 </Property>
                 <Property name="cursor" type="java.awt.Cursor" editor="org.netbeans.modules.form.editors2.CursorEditor">
                   <Color id="Default Cursor"/>
@@ -259,7 +259,7 @@
             <Component class="javax.swing.JLabel" name="lbl_cerrarSesion">
               <Properties>
                 <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/Img/cerrar-sesion.png"/>
+                  <Image iconType="2" name="C:\Users\cmcha\Documents\NetBeansProjects\BaleadasHermanas_API\src\main\java\ujcv\edu\hn\Img\cerrar-sesion.png"/>
                 </Property>
                 <Property name="cursor" type="java.awt.Cursor" editor="org.netbeans.modules.form.editors2.CursorEditor">
                   <Color id="Hand Cursor"/>

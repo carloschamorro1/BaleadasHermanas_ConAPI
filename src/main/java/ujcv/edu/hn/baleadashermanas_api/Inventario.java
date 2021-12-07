@@ -5,7 +5,6 @@
  */
 package ujcv.edu.hn.baleadashermanas_api;
 
-import baleadashermanas.BD.ConexionBD;
 import com.placeholder.PlaceHolder;
 import java.awt.Color;
 import java.awt.HeadlessException;
@@ -40,7 +39,6 @@ public class Inventario extends javax.swing.JFrame {
         informacionGeneral();
         holders();
         lbl_nombreUsuario.setText(nombreUsuario);
-        this.con = ConexionBD.obtenerConexion();
         lbl_idProducto.setVisible(false);
     }
 
@@ -52,6 +50,7 @@ public class Inventario extends javax.swing.JFrame {
         this.setTitle("Inventario");
         this.setLocationRelativeTo(null);
         this.setIconImage(new ImageIcon(getClass().getResource("../Img/Titulo.png")).getImage());
+        this.setIconImage(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\Titulo.png").getImage());
     }
 
     public void holders() {
