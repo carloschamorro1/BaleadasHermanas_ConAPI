@@ -306,6 +306,7 @@ public class Empleados extends javax.swing.JFrame {
      
      public void restablecer(){
          limpiar();
+         holders();
          btn_agregar.setEnabled(true);
          btn_buscar.setEnabled(true);
          btn_actualizar.setEnabled(false);
@@ -368,6 +369,9 @@ public class Empleados extends javax.swing.JFrame {
         else{
             try {
                 getByDNI(input);
+                if(!existeEmpleado){
+                    return;
+                }
                 colorear();
                 habilitarAccionesBuscar();
                 
@@ -1101,7 +1105,6 @@ public class Empleados extends javax.swing.JFrame {
                    String responseJson = put.readEntity(String.class);
                    Empleado data = new Gson().fromJson(responseJson, Empleado.class);
 
-                   JOptionPane.showMessageDialog(null,put.getStatus());
 
                    switch (put.getStatus()) {
                        case 200:

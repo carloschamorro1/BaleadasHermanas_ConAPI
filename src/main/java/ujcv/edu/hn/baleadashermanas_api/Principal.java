@@ -313,7 +313,7 @@ public class Principal extends javax.swing.JFrame {
             cliente = new Clientes(lbl_nombreUsuario.getText());
             this.dispose();
             cliente.setVisible(true);
-        } catch (SQLException ex) {
+        } catch (Exception ex) {
             Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
         }
        
@@ -331,13 +331,13 @@ public class Principal extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_inventarioMouseExited
 
     private void btn_inventarioMousePressed(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btn_inventarioMousePressed
-        btn_clientes.setBackground(new Color(40,74,172));
+        btn_inventario.setBackground(new Color(40,74,172));
         Inventario inventario;
         try {
             inventario = new Inventario(lbl_nombreUsuario.getText());
             this.dispose();
             inventario.setVisible(true);
-        } catch (SQLException ex) {
+        } catch (Exception ex) {
             Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
         }
         

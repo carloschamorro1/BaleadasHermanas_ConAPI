@@ -5,6 +5,7 @@
  */
 package ujcv.edu.hn.baleadashermanas_api;
 
+import com.google.gson.Gson;
 import com.placeholder.PlaceHolder;
 import java.awt.Color;
 import java.awt.HeadlessException;
@@ -23,8 +24,16 @@ import java.util.regex.Pattern;
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Response;
 import ujcv.edu.hn.baleadashermanas_api.Empleados;
 import ujcv.edu.hn.baleadashermanas_api.Principal;
+import ujcv.edu.hn.baleadashermanas_api.model.Cliente;
+import ujcv.edu.hn.baleadashermanas_api.model.Empleado;
 
 /**
  *
@@ -32,14 +41,17 @@ import ujcv.edu.hn.baleadashermanas_api.Principal;
  */
 public class Clientes extends javax.swing.JFrame {
 
-    Statement stmt = null;
-    Connection con = null;
+    String res = "";
+    String URL = "http://192.168.178.34:8080/api/v1/cliente";
+    boolean existeCliente = false;
+    boolean existeRTN = false;
+    Long idCliente = 0L;
     /**
      * Creates new form Clientes
      * @param nombreUsuario
      * @throws java.sql.SQLException
      */
-    public Clientes(String nombreUsuario) throws SQLException {
+    public Clientes(String nombreUsuario){
         initComponents();
         informacionGeneral();
         holders();
@@ -82,34 +94,61 @@ public class Clientes extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this,"Favor de ingresar los datos del cliente\n que desea buscar","¡AVISO!",JOptionPane.INFORMATION_MESSAGE);
         }
         else{
-            String sql = "select * from cliente\n" +
-            "where dnicliente = '"+input+"' or primer_nombre_cliente ='"+input+"' or primer_apellido_cliente ='"+input+"'";     
             try {
-                stmt = con.createStatement();
-                ResultSet rs = stmt.executeQuery(sql);
-                if(rs.next()){
-                    Locale locale = new Locale("es", "HN"); 
-                    NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(locale);
-                    txt_primerNombreCliente.setText(rs.getString("primer_nombre_cliente"));
-                    txt_segundoNombreCliente.setText(rs.getString("segundo_nombre_cliente"));
-                    txt_primerApellidoCliente.setText(rs.getString("primer_apellido_cliente"));
-                    txt_segundoApellidoCliente.setText(rs.getString("segundo_apellido_cliente"));
-                    txt_telefonoCliente.setText(rs.getString("telefono_cliente"));
-                    txt_emailCliente.setText(rs.getString("email_cliente"));
-                    txt_dniCliente.setText(rs.getString("dnicliente"));
-                    txt_rtnCliente.setText(rs.getString("rtncliente")); 
-                    lbl_Dni.setText(rs.getString("dnicliente"));
-                    colorear();
-                    habilitarAccionesBuscar();
+                getByDNI(input);
+                if(!existeCliente){
+                    return;
                 }
-                else{
-                    JOptionPane.showMessageDialog(null,"¡No se encuentra el cliente! Por favor verifique sí, lo escribio correctamente");
-                }
-            } catch (SQLException ex) {
-                Logger.getLogger(Empleados.class.getName()).log(Level.SEVERE, null, ex);
-            }   
-            
-              }
+                colorear();
+                habilitarAccionesBuscar();
+                
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, e.getMessage());
+            }  
+     }
+           
+    }
+    
+    public void getByDNI(String dni){
+        try{
+                   existeCliente = false;
+                   Client client= ClientBuilder.newClient();
+                   
+                   String path = URL+"/dni/"+dni;
+                   WebTarget target = client.target(path);
+
+                   Invocation.Builder solicitud =target.request();
+
+                   Response get = solicitud.get();
+
+                   String responseJson = get.readEntity(String.class);
+                   
+                   Cliente data = new Gson().fromJson(responseJson, Cliente.class);
+
+                   switch (get.getStatus()) {
+                       case 200:
+                           res = "Datos recuperados";                
+                           txt_primerNombreCliente.setText(data.getPrimer_nombre_cliente());
+                           txt_segundoNombreCliente.setText(data.getSegundo_nombre_cliente());
+                           txt_primerApellidoCliente.setText(data.getPrimer_apellido_cliente());
+                           txt_segundoApellidoCliente.setText(data.getSegundo_apellido_cliente());
+                           txt_telefonoCliente.setText(data.getTelefono_cliente());
+                           txt_emailCliente.setText(data.getEmail_cliente());
+                           txt_dniCliente.setText(data.getDnicliente());
+                           txt_rtnCliente.setText(data.getRtncliente()); 
+                           lbl_Dni.setText(data.getDnicliente());
+                           idCliente = data.getIdcliente();
+                           existeCliente = true;
+                           break;
+                       default:
+                           res = "El DNI no existe";
+                           existeCliente = false;
+                           JOptionPane.showMessageDialog(this, res);
+                           break;
+                   }
+               }catch(Exception e){
+                   res = e.getMessage();
+               }
     }
     
     public void colorear(){
@@ -167,27 +206,45 @@ public class Clientes extends javax.swing.JFrame {
         
         return false;
     }
-    
-    
+         
+    public void existeDNI(String dni){
+        try{
+                   existeCliente = false;
+                   Client client= ClientBuilder.newClient();
+                   
+                   String path = URL+"/dni/"+dni;
+                   WebTarget target = client.target(path);
 
-    
-    public boolean existeCliente(){
-        try {
-            Statement st = con.createStatement();
-            String sql = "Select dnicliente from cliente where dnicliente = '"+txt_dniCliente.getText()+"'";
-            ResultSet rs = st.executeQuery(sql);
-            if(rs.next()){
-                JOptionPane.showMessageDialog(null, "El DNI: "+txt_dniCliente.getText()+" ya existe", "Este DNI ¡Ya existe!", JOptionPane.INFORMATION_MESSAGE);
-                return true;
-            }
-            else{
-                return false;
-            }
-        } catch (SQLException ex) {
-            Logger.getLogger(Empleados.class.getName()).log(Level.SEVERE, null, ex);
+                   Invocation.Builder solicitud =target.request();
+
+                   Response get = solicitud.get();
+
+                   String responseJson = get.readEntity(String.class);
+
+                   switch (get.getStatus()) {
+                       case 200:
+                           res = "El DNI ya existe";
+                           existeCliente = true;
+                           break;
+                       case 405:
+                           res = "El DNI no existe";
+                           existeCliente = false;
+                           break;
+                   }
+               }catch(Exception e){
+                   res = e.getMessage();
+               }
+               finally{
+             if(!existeCliente){        
+                 return;        
+             }
+             JOptionPane.showMessageDialog(this, res);
         }
-        return false;
     }
+    
+    
+   
+ 
       
      private boolean validarLongitudTelefono(JTextField texto, int longitud){
        if(texto.getText().length() == longitud){
@@ -243,6 +300,7 @@ public class Clientes extends javax.swing.JFrame {
      
      public void restablecer(){
          limpiar();
+         holders();
          btn_agregar.setEnabled(true);
          btn_buscar.setEnabled(true);
          btn_actualizar.setEnabled(false);
@@ -289,7 +347,6 @@ public class Clientes extends javax.swing.JFrame {
         lbl_Dni = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setPreferredSize(new java.awt.Dimension(1319, 821));
         setResizable(false);
 
         kGradientPanel1.setkEndColor(new java.awt.Color(40, 74, 172));
@@ -476,7 +533,7 @@ public class Clientes extends javax.swing.JFrame {
             }
         });
 
-        lbl_home.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/home-icon-silhouette.png"))); // NOI18N
+        lbl_home.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\home-icon-silhouette.png"));
         lbl_home.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         lbl_home.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
@@ -484,62 +541,62 @@ public class Clientes extends javax.swing.JFrame {
             }
         });
 
-        lbl_usuario.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/profile.png"))); // NOI18N
+        lbl_usuario.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\profile.png"));
         lbl_usuario.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
 
         lbl_tituloClientes.setFont(new java.awt.Font("Roboto Black", 0, 48)); // NOI18N
         lbl_tituloClientes.setText("Clientes");
 
-        lbl_segundoNombreCliente.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/name.png"))); // NOI18N
+        lbl_segundoNombreCliente.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\name.png"));
         lbl_segundoNombreCliente.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_segundoNombreClienteMousePressed(evt);
             }
         });
 
-        lbl_telefonoCliente.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/phone-call.png"))); // NOI18N
+        lbl_telefonoCliente.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\phone-call.png"));
         lbl_telefonoCliente.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_telefonoClienteMousePressed(evt);
             }
         });
 
-        lbl_primerApellidoCliente.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/name2.png"))); // NOI18N
+        lbl_primerApellidoCliente.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\name2.png"));
         lbl_primerApellidoCliente.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_primerApellidoClienteMousePressed(evt);
             }
         });
 
-        lbl_segundoApellidoCliente.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/name2.png"))); // NOI18N
+        lbl_segundoApellidoCliente.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\name2.png"));
         lbl_segundoApellidoCliente.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_segundoApellidoClienteMousePressed(evt);
             }
         });
 
-        lbl_primerNombreCliente.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/name.png"))); // NOI18N
+        lbl_primerNombreCliente.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\name.png"));
         lbl_primerNombreCliente.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_primerNombreClienteMousePressed(evt);
             }
         });
 
-        lbl_emailCliente.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/email.png"))); // NOI18N
+        lbl_emailCliente.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\email.png"));
         lbl_emailCliente.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_emailClienteMousePressed(evt);
             }
         });
 
-        lbl_dniCliente.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/id-card.png"))); // NOI18N
+        lbl_dniCliente.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\id-card.png"));
         lbl_dniCliente.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_dniClienteMousePressed(evt);
             }
         });
 
-        lbl_rtnEmpleado.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/tarjeta-de-identificacion.png"))); // NOI18N
+        lbl_rtnEmpleado.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\tarjeta-de-identificacion.png"));
         lbl_rtnEmpleado.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_rtnEmpleadoMousePressed(evt);
@@ -841,9 +898,48 @@ public class Clientes extends javax.swing.JFrame {
                     return;
 
                 }
+                 
+                 Client client= ClientBuilder.newClient();
+
+                   WebTarget target = client.target(URL + "");
+
+                   Invocation.Builder solicitud =target.request();
+
+                   Cliente cliente = new Cliente();
+                   cliente.setIdcliente(idCliente);
+                   cliente.setPrimer_nombre_cliente(txt_primerNombreCliente.getText());
+                   cliente.setSegundo_nombre_cliente(txt_segundoNombreCliente.getText());
+                   cliente.setPrimer_apellido_cliente(txt_primerApellidoCliente.getText());
+                   cliente.setSegundo_apellido_cliente(txt_segundoApellidoCliente.getText());
+                   cliente.setTelefono_cliente(txt_telefonoCliente.getText());
+                   cliente.setEmail_cliente(txt_emailCliente.getText());
+                   cliente.setDnicliente(txt_dniCliente.getText());
+                   cliente.setRtncliente(txt_rtnCliente.getText());
+
+                   Gson gson = new Gson();
+                   String jsonString = gson.toJson(cliente);
+
+                   Response put = solicitud.put(Entity.json(jsonString));
+
+
+                   String responseJson = put.readEntity(String.class);
+                   Empleado data = new Gson().fromJson(responseJson, Empleado.class);
+
+
+                   switch (put.getStatus()) {
+                       case 200:
+                           res = "Cliente actualizado";                    
+                           JOptionPane.showMessageDialog(null,res);
+                           restablecer();
+                           break;
+                       default:
+                           res = "Error";
+                           JOptionPane.showMessageDialog(null,res);
+                           break;
+                   }
 
          
-                PreparedStatement ps;
+                /*PreparedStatement ps;
                 ResultSet rs;
                 int telefono = Integer.parseInt(txt_telefonoCliente.getText());
                 ps=con.prepareStatement("Update cliente\n" +
@@ -869,10 +965,10 @@ public class Clientes extends javax.swing.JFrame {
                     if(res >0){
                         JOptionPane.showMessageDialog(this, "Cliente actualizado");
                         restablecer();
-                    }
+                    }*/
                 
 
-            }catch(HeadlessException | SQLException e){
+            }catch(Exception e){
 
             }
          }
@@ -886,16 +982,23 @@ public class Clientes extends javax.swing.JFrame {
         )==JOptionPane.YES_OPTION){
              
             try{
-            PreparedStatement ps;
-            ResultSet rs;
-            ps=con.prepareStatement("Delete cliente\n" +
-                                    "where dnicliente =?");      
-            ps.setString(1, lbl_Dni.getText());
-            int res= ps.executeUpdate();
-            if(res >0){
-                JOptionPane.showMessageDialog(this, "Cliente eliminado");
-                restablecer();
-            }
+                Client client= ClientBuilder.newClient();
+
+                   WebTarget target = client.target(URL + "/delete/"+idCliente);
+                   Invocation.Builder solicitud =target.request();
+                   Response delete = solicitud.delete();
+                   String responseJson = delete.readEntity(String.class);
+                   switch (delete.getStatus()) {
+                       case 200:
+                           res = "Cliente eliminado";
+                           JOptionPane.showMessageDialog(null,res);
+                           restablecer();
+                           break;
+                       default:
+                           res = "Error";
+                           JOptionPane.showMessageDialog(null,res);
+                           break;
+                   }
            
             }catch(Exception e){
                 
@@ -913,10 +1016,6 @@ public class Clientes extends javax.swing.JFrame {
                 return;
             }
 
-            if(existeCliente()){
-                return;
-            }
-
 
             if(!validarLongitudTelefono(txt_telefonoCliente,8)){
                 return;
@@ -924,28 +1023,52 @@ public class Clientes extends javax.swing.JFrame {
 
              if(!validarDni(txt_dniCliente.getText())){
                 return;
-
             }
+             existeDNI(txt_dniCliente.getText());
+            if(existeCliente){
+                return;
+            }
+            
+            Client client= ClientBuilder.newClient();
+
+                   WebTarget target = client.target(URL + "/addcliente");
+
+                   Invocation.Builder solicitud =target.request();
+
+                   Cliente cliente = new Cliente();
+                   cliente.setPrimer_nombre_cliente(txt_primerNombreCliente.getText());
+                   cliente.setSegundo_nombre_cliente(txt_segundoNombreCliente.getText());
+                   cliente.setPrimer_apellido_cliente(txt_primerApellidoCliente.getText());
+                   cliente.setSegundo_apellido_cliente(txt_segundoApellidoCliente.getText());
+                   cliente.setTelefono_cliente(txt_telefonoCliente.getText());
+                   cliente.setEmail_cliente(txt_emailCliente.getText());
+                   cliente.setDnicliente(txt_dniCliente.getText());
+                   cliente.setRtncliente(txt_rtnCliente.getText());
+
+                   Gson gson = new Gson();
+                   String jsonString = gson.toJson(cliente);
+
+                   Response post = solicitud.post(Entity.json(jsonString));
+
+
+                   String responseJson = post.readEntity(String.class);
+                   Cliente data = new Gson().fromJson(responseJson, Cliente.class);           
+
+                   switch (post.getStatus()) {
+                       case 201:
+                           res = "Cliente agregado exitosamente";
+                           JOptionPane.showMessageDialog(null,res);
+                           restablecer();
+                           break;
+                       default:
+                           res = "Error";
+                           JOptionPane.showMessageDialog(null,res);
+                           break;
+                   }
+            
+            
     
-            PreparedStatement ps;
-            ResultSet rs;
-        
-          ps=con.prepareStatement("INSERT INTO cliente (primer_nombre_cliente, segundo_nombre_cliente, primer_apellido_cliente, segundo_apellido_cliente,"
-                  + "telefono_cliente, email_cliente,dnicliente,rtncliente)"
-                  + "VALUES(?,?,?,?,?,?,?,?)");
-                  ps.setString(1, txt_primerNombreCliente.getText());
-                  ps.setString(2, txt_segundoNombreCliente.getText());
-                  ps.setString(3, txt_primerApellidoCliente.getText());
-                  ps.setString(4, txt_segundoApellidoCliente.getText());
-                  ps.setString(5, txt_telefonoCliente.getText());
-                  ps.setString(6, txt_emailCliente.getText());
-                  ps.setString(7, txt_dniCliente.getText());
-                  ps.setString(8, txt_rtnCliente.getText());
-                  int res= ps.executeUpdate();
-                  if(res >0){
-                      JOptionPane.showMessageDialog(this, "Cliente agregado");
-                      restablecer();
-                  }
+       
                   
         }catch(Exception e){
             

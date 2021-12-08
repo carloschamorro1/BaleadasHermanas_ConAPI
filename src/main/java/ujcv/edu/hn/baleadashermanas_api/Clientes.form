@@ -420,8 +420,8 @@
             </Component>
             <Component class="javax.swing.JLabel" name="lbl_home">
               <Properties>
-                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/Img/home-icon-silhouette.png"/>
+                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+                  <Connection code="new javax.swing.ImageIcon(&quot;src\\main\\java\\ujcv\\edu\\hn\\Img\\home-icon-silhouette.png&quot;)" type="code"/>
                 </Property>
                 <Property name="cursor" type="java.awt.Cursor" editor="org.netbeans.modules.form.editors2.CursorEditor">
                   <Color id="Hand Cursor"/>
@@ -433,8 +433,8 @@
             </Component>
             <Component class="javax.swing.JLabel" name="lbl_usuario">
               <Properties>
-                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/Img/profile.png"/>
+                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+                  <Connection code="new javax.swing.ImageIcon(&quot;src\\main\\java\\ujcv\\edu\\hn\\Img\\profile.png&quot;)" type="code"/>
                 </Property>
                 <Property name="cursor" type="java.awt.Cursor" editor="org.netbeans.modules.form.editors2.CursorEditor">
                   <Color id="Default Cursor"/>
@@ -451,8 +451,8 @@
             </Component>
             <Component class="javax.swing.JLabel" name="lbl_segundoNombreCliente">
               <Properties>
-                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/Img/name.png"/>
+                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+                  <Connection code="new javax.swing.ImageIcon(&quot;src\\main\\java\\ujcv\\edu\\hn\\Img\\name.png&quot;)" type="code"/>
                 </Property>
               </Properties>
               <Events>
@@ -461,8 +461,8 @@
             </Component>
             <Component class="javax.swing.JLabel" name="lbl_telefonoCliente">
               <Properties>
-                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/Img/phone-call.png"/>
+                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+                  <Connection code="new javax.swing.ImageIcon(&quot;src\\main\\java\\ujcv\\edu\\hn\\Img\\phone-call.png&quot;)" type="code"/>
                 </Property>
               </Properties>
               <Events>
@@ -471,8 +471,8 @@
             </Component>
             <Component class="javax.swing.JLabel" name="lbl_primerApellidoCliente">
               <Properties>
-                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/Img/name2.png"/>
+                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+                  <Connection code="new javax.swing.ImageIcon(&quot;src\\main\\java\\ujcv\\edu\\hn\\Img\\name2.png&quot;)" type="code"/>
                 </Property>
               </Properties>
               <Events>
@@ -481,8 +481,8 @@
             </Component>
             <Component class="javax.swing.JLabel" name="lbl_segundoApellidoCliente">
               <Properties>
-                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/Img/name2.png"/>
+                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+                  <Connection code="new javax.swing.ImageIcon(&quot;src\\main\\java\\ujcv\\edu\\hn\\Img\\name2.png&quot;)" type="code"/>
                 </Property>
               </Properties>
               <Events>
@@ -491,8 +491,8 @@
             </Component>
             <Component class="javax.swing.JLabel" name="lbl_primerNombreCliente">
               <Properties>
-                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/Img/name.png"/>
+                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+                  <Connection code="new javax.swing.ImageIcon(&quot;src\\main\\java\\ujcv\\edu\\hn\\Img\\name.png&quot;)" type="code"/>
                 </Property>
               </Properties>
               <Events>
@@ -501,8 +501,8 @@
             </Component>
             <Component class="javax.swing.JLabel" name="lbl_emailCliente">
               <Properties>
-                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/Img/email.png"/>
+                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+                  <Connection code="new javax.swing.ImageIcon(&quot;src\\main\\java\\ujcv\\edu\\hn\\Img\\email.png&quot;)" type="code"/>
                 </Property>
               </Properties>
               <Events>
@@ -511,8 +511,8 @@
             </Component>
             <Component class="javax.swing.JLabel" name="lbl_dniCliente">
               <Properties>
-                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/Img/id-card.png"/>
+                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+                  <Connection code="new javax.swing.ImageIcon(&quot;src\\main\\java\\ujcv\\edu\\hn\\Img\\id-card.png&quot;)" type="code"/>
                 </Property>
               </Properties>
               <Events>
@@ -521,8 +521,8 @@
             </Component>
             <Component class="javax.swing.JLabel" name="lbl_rtnEmpleado">
               <Properties>
-                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                  <Image iconType="3" name="/Img/tarjeta-de-identificacion.png"/>
+                <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+                  <Connection code="new javax.swing.ImageIcon(&quot;src\\main\\java\\ujcv\\edu\\hn\\Img\\tarjeta-de-identificacion.png&quot;)" type="code"/>
                 </Property>
               </Properties>
               <Events>

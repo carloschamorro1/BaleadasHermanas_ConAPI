@@ -5,41 +5,56 @@
  */
 package ujcv.edu.hn.baleadashermanas_api;
 
+import com.google.gson.Gson;
 import com.placeholder.PlaceHolder;
 import java.awt.Color;
-import java.awt.HeadlessException;
 import java.awt.Toolkit;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.text.NumberFormat;
 import java.util.Calendar;
-import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
+import javax.swing.JSpinner;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Response;
+import ujcv.edu.hn.baleadashermanas_api.model.Cliente;
+import ujcv.edu.hn.baleadashermanas_api.model.Empleado;
+import ujcv.edu.hn.baleadashermanas_api.model.Producto;
 
 /**
  *
  * @author Carlos
  */
 public class Inventario extends javax.swing.JFrame {
+    String res = "";
+    String URL = "http://192.168.178.34:8080/api/v1/inventario";
+    String URL_EMPLEADOS = "http://192.168.178.34:8080/api/v1/empleado";
+    boolean existeProducto = false;
+    long idEmpleado = 0;
+    long idProducto = 0;
 
-    Statement stmt = null;
-    Connection con = null;
 
     /**
      * Creates new form Inventario
+     * @param nombreUsuario
      */
-    public Inventario(String nombreUsuario) throws SQLException {
+    public Inventario(String nombreUsuario) {
         initComponents();
         informacionGeneral();
         holders();
         lbl_nombreUsuario.setText(nombreUsuario);
         lbl_idProducto.setVisible(false);
+        ((JSpinner.DefaultEditor) spi_cantidadProducto.getEditor()).getTextField().setEditable(false);
+
     }
 
     public Inventario() {
@@ -49,7 +64,6 @@ public class Inventario extends javax.swing.JFrame {
     public void informacionGeneral() {
         this.setTitle("Inventario");
         this.setLocationRelativeTo(null);
-        this.setIconImage(new ImageIcon(getClass().getResource("../Img/Titulo.png")).getImage());
         this.setIconImage(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\Titulo.png").getImage());
     }
 
@@ -59,43 +73,75 @@ public class Inventario extends javax.swing.JFrame {
         holder = new PlaceHolder(txt_precioProducto, Color.gray, Color.black, "Ingrese el precio del producto", false, "Roboto", 25);
     }
 
-    public void rellenar() {
+    public void rellenar(){
         String input = "";
-        input = JOptionPane.showInputDialog(this, "¿Qué producto desea buscar?", "Consulta de producto", JOptionPane.QUESTION_MESSAGE);
-        if (input == null) {
-            JOptionPane.showMessageDialog(this, "La acción fue cancelada", "¡AVISO!", JOptionPane.INFORMATION_MESSAGE);
-        } else if (input.equals("")) {
-            JOptionPane.showMessageDialog(this, "Favor de ingresar los datos del producto\n que desea buscar", "¡AVISO!", JOptionPane.INFORMATION_MESSAGE);
-        } else {
-            String sql = "select * from inventario\n"
-                    + "where nombreproducto ='" + input + "'";
-            try {
-                stmt = con.createStatement();
-                ResultSet rs = stmt.executeQuery(sql);
-                if (rs.next()) {
-                    txt_nombreProducto.setText(rs.getString("nombreproducto"));
-                    int cantidad = Integer.parseInt(rs.getString("cantidadstock"));
-                    spi_cantidadProducto.setValue(cantidad);
-                    String tipoMovimiento = rs.getString("tipomovimiento");
-                    if (tipoMovimiento.equals("i")) {
-                        cmb_tipoMovimiento.setSelectedItem("Ingreso");
-                    }
-                    if (tipoMovimiento.equals("r")) {
-                        cmb_tipoMovimiento.setSelectedItem("Retiro");
-                    }
-                    txt_precioProducto.setText(rs.getString("precio"));
-                    lbl_idProducto.setText(rs.getString("idproducto"));
-                    colorear();
-                    habilitarAccionesBuscar();
-                } else {
-                    JOptionPane.showMessageDialog(null, "¡No se encuentra el producto! Por favor verifique sí, lo escribio correctamente");
-                }
-            } catch (SQLException ex) {
-                JOptionPane.showMessageDialog(this, ex.getMessage());
-                Logger.getLogger(Empleados.class.getName()).log(Level.SEVERE, null, ex);
-            }
-
+        input = JOptionPane.showInputDialog(this, "¿A quien desea buscar?","Consulta de producto",JOptionPane.QUESTION_MESSAGE);
+        if(input == null){
+                JOptionPane.showMessageDialog(this,"La acción fue cancelada","¡AVISO!",JOptionPane.INFORMATION_MESSAGE);
         }
+        else if(input.equals("")){ 
+            JOptionPane.showMessageDialog(this,"Favor de ingresar los datos del producto\n que desea buscar","¡AVISO!",JOptionPane.INFORMATION_MESSAGE);
+        }
+        else{
+            try {
+                getByNombre(input);
+                if(!existeProducto){
+                    return;
+                }
+                colorear();
+                habilitarAccionesBuscar();
+                
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, e.getMessage());
+            }  
+     }
+           
+    }
+    
+    public void getByNombre(String nombre){
+        try{
+                   existeProducto = false;
+                   Client client= ClientBuilder.newClient();
+                   
+                   String path = URL+"/nombreproducto/"+nombre;
+                   WebTarget target = client.target(path);
+
+                   Invocation.Builder solicitud =target.request();
+
+                   Response get = solicitud.get();
+
+                   String responseJson = get.readEntity(String.class);
+                   
+                   Producto data = new Gson().fromJson(responseJson, Producto.class);
+
+                   switch (get.getStatus()) {
+                       case 200:
+                            res = "Datos recuperados";                
+                            txt_nombreProducto.setText(data.getNombreproducto());
+                            
+                            int cantidad = Integer.parseInt(data.getCantidadstock());
+                            spi_cantidadProducto.setValue(cantidad);
+                            String tipoMovimiento = data.getTipomovimiento();
+                            if (tipoMovimiento.equals("i")) {
+                                cmb_tipoMovimiento.setSelectedItem("Ingreso");
+                            }
+                            if (tipoMovimiento.equals("r")) {
+                                cmb_tipoMovimiento.setSelectedItem("Retiro");
+                            }
+                            txt_precioProducto.setText(data.getPrecio());
+                            lbl_idProducto.setText(data.getIdproducto());         
+                            
+                            existeProducto = true;
+                            break;
+                       default:
+                           res = "El producto no existe";
+                           existeProducto = false;
+                           JOptionPane.showMessageDialog(this, res);
+                           break;
+                   }
+               }catch(Exception e){
+                   res = e.getMessage();
+               }
     }
 
     public void colorear() {
@@ -137,26 +183,74 @@ public class Inventario extends javax.swing.JFrame {
         cmb_tipoMovimiento.setSelectedItem("Seleccione el movimiento");
         txt_precioProducto.setText("");
     }
+    
+    public void capturarIdEmpleado(String usuario){
+        try{        
+                   Client client= ClientBuilder.newClient();
+                   
+                   String path = URL_EMPLEADOS+"/"+usuario;
+                   WebTarget target = client.target(path);
 
-    public boolean existeProducto() {
-        try {
-            Statement st = con.createStatement();
-            String sql = "Select nombreproducto from inventario where nombreproducto = '" + txt_nombreProducto.getText() + "'";
-            ResultSet rs = st.executeQuery(sql);
-            if (rs.next()) {
-                JOptionPane.showMessageDialog(null, "El Producto: " + txt_nombreProducto.getText() + " ya existe", "Este producto ¡Ya existe!", JOptionPane.INFORMATION_MESSAGE);
-                return true;
-            } else {
-                return false;
-            }
-        } catch (SQLException ex) {
-            Logger.getLogger(Empleados.class.getName()).log(Level.SEVERE, null, ex);
+                   Invocation.Builder solicitud =target.request();
+
+                   Response get = solicitud.get();
+
+                   String responseJson = get.readEntity(String.class);
+                   
+                   Empleado data = new Gson().fromJson(responseJson, Empleado.class);       
+                   switch (get.getStatus()) {
+                       case 200:
+                           res = "El usuario ya existe";
+                           idEmpleado = data.getIdempleado();
+                           break;
+                       case 405:
+                           res = "El usuario no existe";
+                           break;
+                   }
+               }catch(Exception e){
+                   res = e.getMessage();
+               }
+    }
+
+    
+    public void existeProducto(String nombreProducto){
+        try{
+                   existeProducto = false;
+                   Client client= ClientBuilder.newClient();
+                   
+                   String path = URL+"/nombreproducto/"+nombreProducto;
+                   WebTarget target = client.target(path);
+
+                   Invocation.Builder solicitud =target.request();
+
+                   Response get = solicitud.get();
+
+                   String responseJson = get.readEntity(String.class);
+
+                   switch (get.getStatus()) {
+                       case 200:
+                           res = "El producto ya existe";
+                           existeProducto = true;
+                           break;
+                       case 405:
+                           res = "El producto no existe";
+                           existeProducto = false;
+                           break;
+                   }
+               }catch(Exception e){
+                   res = e.getMessage();
+               }
+               finally{
+             if(!existeProducto){        
+                 return;        
+             }
+             JOptionPane.showMessageDialog(this, res);
         }
-        return false;
     }
 
     public void restablecer() {
         limpiar();
+        holders();
         btn_agregar.setEnabled(true);
         btn_buscar.setEnabled(true);
         btn_actualizar.setEnabled(false);
@@ -164,7 +258,7 @@ public class Inventario extends javax.swing.JFrame {
         txt_nombreProducto.requestFocus();
     }
 
-    public String capturarIdEmpleado() {
+    /*public String capturarIdEmpleado() {
         String idEmpleado = "";
         try {
             Statement st = con.createStatement();
@@ -178,7 +272,7 @@ public class Inventario extends javax.swing.JFrame {
             Logger.getLogger(Empleados.class.getName()).log(Level.SEVERE, null, ex);
         }
         return idEmpleado;
-    }
+    }*/
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -327,7 +421,7 @@ public class Inventario extends javax.swing.JFrame {
             }
         });
 
-        lbl_home.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/home-icon-silhouette.png"))); // NOI18N
+        lbl_home.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\home-icon-silhouette.png"));
         lbl_home.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         lbl_home.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
@@ -335,34 +429,34 @@ public class Inventario extends javax.swing.JFrame {
             }
         });
 
-        lbl_usuario.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/profile.png"))); // NOI18N
+        lbl_usuario.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\profile.png"));
         lbl_usuario.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
 
         lbl_tituloInventario.setFont(new java.awt.Font("Roboto Black", 0, 48)); // NOI18N
         lbl_tituloInventario.setText("Inventario");
 
-        lbl_precioProducto.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/pagar.png"))); // NOI18N
+        lbl_precioProducto.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\pagar.png"));
         lbl_precioProducto.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_precioProductoMousePressed(evt);
             }
         });
 
-        lbl_cantidadProducto.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/cantidad.png"))); // NOI18N
+        lbl_cantidadProducto.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\cantidad.png"));
         lbl_cantidadProducto.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_cantidadProductoMousePressed(evt);
             }
         });
 
-        lbl_tipoMovimiento.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/inventario.png"))); // NOI18N
+        lbl_tipoMovimiento.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\inventario.png"));
         lbl_tipoMovimiento.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_tipoMovimientoMousePressed(evt);
             }
         });
 
-        lbl_nombreProducto.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/nuevo-producto.png"))); // NOI18N
+        lbl_nombreProducto.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\nuevo-producto.png"));
         lbl_nombreProducto.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_nombreProductoMousePressed(evt);
@@ -371,6 +465,14 @@ public class Inventario extends javax.swing.JFrame {
 
         spi_cantidadProducto.setFont(new java.awt.Font("Roboto", 0, 20)); // NOI18N
         spi_cantidadProducto.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        spi_cantidadProducto.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                spi_cantidadProductoKeyPressed(evt);
+            }
+            public void keyTyped(java.awt.event.KeyEvent evt) {
+                spi_cantidadProductoKeyTyped(evt);
+            }
+        });
 
         cmb_tipoMovimiento.setFont(new java.awt.Font("Roboto", 0, 20)); // NOI18N
         cmb_tipoMovimiento.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Seleccione el movimiento", "Ingreso", "Retiro" }));
@@ -599,33 +701,46 @@ public class Inventario extends javax.swing.JFrame {
                 return;
             }
 
-            if (existeProducto()) {
+            existeProducto(txt_nombreProducto.getText());
+            if(existeProducto){
                 return;
             }
+            
+            capturarIdEmpleado(lbl_nombreUsuario.getText());
 
             Calendar f;
             f = Calendar.getInstance();
             int d = f.get(Calendar.DATE), mes = 1 + (f.get(Calendar.MONTH)), año = f.get(Calendar.YEAR);
             String fecha = (año + "-" + mes + "-" + d);
+            
+                    Client client= ClientBuilder.newClient();
+                    WebTarget target = client.target(URL + "/addproducto");
+                    Invocation.Builder solicitud =target.request();
+                    Producto producto = new Producto();
+                    producto.setNombreproducto(txt_nombreProducto.getText());
+                    producto.setIdempleado(idEmpleado);
+                    producto.setCantidadstock(spi_cantidadProducto.getValue().toString());
+                    producto.setFechaintroduccion(fecha);                
+                    producto.setTipomovimiento(cmb_tipoMovimiento.getSelectedItem().toString().substring(0, 1).toLowerCase());              
+                    producto.setPrecio(txt_precioProducto.getText());
+                    Gson gson = new Gson();
+                    String jsonString = gson.toJson(producto);
+                    Response post = solicitud.post(Entity.json(jsonString));
 
-            PreparedStatement ps;
-            ResultSet rs;
+                    String responseJson = post.readEntity(String.class);
+                    Producto data = new Gson().fromJson(responseJson, Producto.class);           
 
-            ps = con.prepareStatement("INSERT INTO inventario (nombreproducto, idempleado, cantidadstock, fechaintroduccion,"
-                    + "tipomovimiento, precio)"
-                    + "VALUES(?,?,?,?,?,?)");
-            ps.setString(1, txt_nombreProducto.getText());
-            String idEmpleado = capturarIdEmpleado();
-            ps.setString(2, idEmpleado);
-            ps.setString(3, spi_cantidadProducto.getValue().toString());
-            ps.setString(4, fecha);
-            ps.setString(5, cmb_tipoMovimiento.getSelectedItem().toString().substring(0, 1).toLowerCase());
-            ps.setString(6, txt_precioProducto.getText());
-            int res = ps.executeUpdate();
-            if (res > 0) {
-                JOptionPane.showMessageDialog(this, "Producto agregado");
-                restablecer();
-            }
+                    switch (post.getStatus()) {
+                        case 201:
+                            res = "Producto agregado exitosamente";
+                            JOptionPane.showMessageDialog(null,res);
+                            restablecer();
+                            break;
+                        default:
+                            res = "Error";
+                            JOptionPane.showMessageDialog(null,res);
+                            break;
+                    }
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, e.getMessage());
         }
@@ -656,20 +771,40 @@ public class Inventario extends javax.swing.JFrame {
                 String fecha = (año + "-" + mes + "-" + d);
 
                 String tipoMovimiento = cmb_tipoMovimiento.getSelectedItem().toString().substring(0, 1).toLowerCase();
+               
+                    Client client= ClientBuilder.newClient();
+                    WebTarget target = client.target(URL + "");
+                    Invocation.Builder solicitud =target.request();
+                    Producto producto = new Producto();
+                    producto.setIdproducto(lbl_idProducto.getText());
+                    producto.setNombreproducto(txt_nombreProducto.getText());
+                    producto.setIdempleado(idEmpleado);
+                    producto.setCantidadstock(spi_cantidadProducto.getValue().toString());
+                    producto.setFechaintroduccion(fecha);                
+                    producto.setTipomovimiento(cmb_tipoMovimiento.getSelectedItem().toString().substring(0, 1).toLowerCase());              
+                    producto.setPrecio(txt_precioProducto.getText());
 
-                Statement st = con.createStatement();
-                String sql = "Update inventario \n"
-                        + "Set nombreproducto = '" + txt_nombreProducto.getText() + "',\n"
-                        + "cantidadstock = '" + spi_cantidadProducto.getValue().toString() + "',\n"
-                        + "fechaintroduccion = '" + fecha + "',\n"
-                        + "tipomovimiento = '" + tipoMovimiento + "',"
-                        + "precio = '" + txt_precioProducto.getText() + "'"
-                        + "where idproducto = '" + lbl_idProducto.getText() + "'";
-                int res = st.executeUpdate(sql);
-                if (res > 0) {
-                    JOptionPane.showMessageDialog(this, "Producto actualizado");
-                    restablecer();
-                }
+                    Gson gson = new Gson();
+                    String jsonString = gson.toJson(producto);
+
+                    Response put = solicitud.put(Entity.json(jsonString));
+
+
+                    String responseJson = put.readEntity(String.class);
+                    Empleado data = new Gson().fromJson(responseJson, Empleado.class);
+
+
+                   switch (put.getStatus()) {
+                       case 200:
+                           res = "Producto actualizado";                    
+                           JOptionPane.showMessageDialog(null,res);
+                           restablecer();
+                           break;
+                       default:
+                           res = "Error";
+                           JOptionPane.showMessageDialog(null,res);
+                           break;
+                   }
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, e.getMessage());
             }
@@ -684,17 +819,23 @@ public class Inventario extends javax.swing.JFrame {
         ) == JOptionPane.YES_OPTION) {
 
             try {
-                PreparedStatement ps;
-                ResultSet rs;
-                ps = con.prepareStatement("Delete inventario\n"
-                        + "where idproducto =?");
-                ps.setString(1, lbl_idProducto.getText());
-                int res = ps.executeUpdate();
-                if (res > 0) {
-                    JOptionPane.showMessageDialog(this, "Producto eliminado");
-                    restablecer();
-                }
+                Client client= ClientBuilder.newClient();
 
+                   WebTarget target = client.target(URL + "/delete/"+lbl_idProducto.getText());
+                   Invocation.Builder solicitud =target.request();
+                   Response delete = solicitud.delete();
+                   String responseJson = delete.readEntity(String.class);
+                   switch (delete.getStatus()) {
+                       case 200:
+                           res = "Producto eliminado";
+                           JOptionPane.showMessageDialog(null,res);
+                           restablecer();
+                           break;
+                       default:
+                           res = "Error";
+                           JOptionPane.showMessageDialog(null,res);
+                           break;
+                   }
             } catch (Exception e) {
 
             }
@@ -758,6 +899,38 @@ public class Inventario extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_txt_precioProductoKeyTyped
 
+    private void spi_cantidadProductoKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_spi_cantidadProductoKeyTyped
+        char a=evt.getKeyChar();
+        if (evt.getKeyChar() == 8 || evt.getKeyChar() == 127 ||
+            evt.getKeyChar() == 0 || evt.getKeyChar() == 3 || evt.getKeyChar() == 22
+            || evt.getKeyChar() == 26 || evt.getKeyChar() == 24 || evt.getKeyChar() == 46 || evt.getKeyChar() == 44) {
+            return;
+        }
+
+        if(Character.isLetter(a) || !Character.isLetterOrDigit(a)){
+            evt.consume();
+            Toolkit.getDefaultToolkit().beep();
+            JOptionPane.showMessageDialog(null, "Sólo numeros");
+        }
+        // TODO add your handling code here:
+    }//GEN-LAST:event_spi_cantidadProductoKeyTyped
+
+    private void spi_cantidadProductoKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_spi_cantidadProductoKeyPressed
+        char a=evt.getKeyChar();
+        if (evt.getKeyChar() == 8 || evt.getKeyChar() == 127 ||
+            evt.getKeyChar() == 0 || evt.getKeyChar() == 3 || evt.getKeyChar() == 22
+            || evt.getKeyChar() == 26 || evt.getKeyChar() == 24 || evt.getKeyChar() == 46 || evt.getKeyChar() == 44) {
+            return;
+        }
+
+        if(Character.isLetter(a) || !Character.isLetterOrDigit(a)){
+            evt.consume();
+            Toolkit.getDefaultToolkit().beep();
+            JOptionPane.showMessageDialog(null, "Sólo numeros");
+        }
+        // TODO add your handling code here:
+    }//GEN-LAST:event_spi_cantidadProductoKeyPressed
+
     /**
      * @param args the command line arguments
      */
@@ -775,14 +948,15 @@ public class Inventario extends javax.swing.JFrame {
                 }
             }
         } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(Inventario.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(Producto.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(Inventario.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(Producto.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(Inventario.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(Producto.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(Inventario.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(Producto.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
+        //</editor-fold>
         //</editor-fold>
 
         /* Create and display the form */
