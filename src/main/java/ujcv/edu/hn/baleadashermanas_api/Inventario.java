@@ -819,8 +819,7 @@ public class Inventario extends javax.swing.JFrame {
         ) == JOptionPane.YES_OPTION) {
 
             try {
-                Client client= ClientBuilder.newClient();
-
+                   Client client= ClientBuilder.newClient();
                    WebTarget target = client.target(URL + "/delete/"+lbl_idProducto.getText());
                    Invocation.Builder solicitud =target.request();
                    Response delete = solicitud.delete();

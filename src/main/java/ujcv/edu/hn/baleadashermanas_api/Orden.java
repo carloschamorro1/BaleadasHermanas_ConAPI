@@ -5,11 +5,15 @@
  */
 package ujcv.edu.hn.baleadashermanas_api;
 import com.formdev.flatlaf.FlatIntelliJLaf;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.placeholder.PlaceHolder;
 import java.awt.Color;
+import java.awt.List;
 import java.awt.Toolkit;
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -30,6 +34,12 @@ import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Response;
 import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
 import net.sf.jasperreports.engine.JasperReport;
@@ -37,6 +47,20 @@ import net.sf.jasperreports.engine.util.JRLoader;
 import net.sf.jasperreports.view.JRSaveContributor;
 import net.sf.jasperreports.view.JRViewer;
 import net.sf.jasperreports.view.JasperViewer;
+import ujcv.edu.hn.baleadashermanas_api.model.Cliente;
+import ujcv.edu.hn.baleadashermanas_api.model.Empleado;
+import ujcv.edu.hn.baleadashermanas_api.model.FacturaDetalle;
+import ujcv.edu.hn.baleadashermanas_api.model.FacturaEncabezado;
+import ujcv.edu.hn.baleadashermanas_api.model.Producto;
+
+
+//necesario solo para la creacion del PDF
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import ujcv.edu.hn.BD.ConexionBD;
+
+
 
 /**
  *
@@ -46,9 +70,15 @@ public class Orden extends javax.swing.JFrame {
     ArrayList<String> clientes = new ArrayList<String>();
     int totalPrecioOrden;
     boolean hayDecimal = false;
-    Statement stmt = null;
-    Connection con = null;
+    String URL_FACTURA_ENCABEZADO = "http://192.168.178.34:8080/api/v1/facturaencabezado";
+    String URL_FACTURA_DETALLE = "http://192.168.178.34:8080/api/v1/facturadetalle";
+    String URL_EMPLEADOS = "http://192.168.178.34:8080/api/v1/empleado";
+    String URL_CLIENTES = "http://192.168.178.34:8080/api/v1/cliente";
+    String URL_INVENTARIO = "http://192.168.178.34:8080/api/v1/inventario";
+    String res = "";
     int filaSeleccionada;
+    long idEmpleado = 0;
+    private static Connection con = null;
 
     /**
      * Creates new form Orden
@@ -59,12 +89,12 @@ public class Orden extends javax.swing.JFrame {
         txt_subtotal.requestFocus();
         lbl_nombreUsuario.setText(nombreUsuario);
         lbl_nombreProducto.setVisible(false);
-        lbl_idFactura.setVisible(false);
+        //lbl_idFactura.setVisible(false);
         lbl_idCliente.setVisible(false);
         lbl_idProducto.setVisible(false);
-        lbl_idDetalle.setVisible(false);     
-        //buscarClientes();
-        //clientesArray();
+        //lbl_idDetalle.setVisible(false);     
+        buscarClientes();
+        this.con = ConexionBD.obtenerConexion();
     }
 
     public Orden() {
@@ -78,61 +108,83 @@ public class Orden extends javax.swing.JFrame {
         PlaceHolder holder;
     }
 
-    /*public void buscarClientes() {
+    public void buscarClientes() {
         ArrayList<String> lista = new ArrayList<String>();
         try {
-            lista = new Queries().llenarClientes();
-            for (int i = 0; i < lista.size(); i++) {
-                cmb_cliente.addItem(lista.get(i));
-            }
-        } catch (SQLException ex) {
+                   Client client= ClientBuilder.newClient();
+
+                   WebTarget target = client.target(URL_CLIENTES + "");
+
+                   //Invocation.Builder solicitud =target.queryParam("id",1).request();
+                   Invocation.Builder solicitud =target.request();
+
+                   Response get = solicitud.get();
+
+
+                   String responseJson = get.readEntity(String.class);                   
+                   
+                   ArrayList<Cliente> data = new Gson().fromJson(responseJson,new TypeToken<ArrayList<Cliente>>(){}.getType());
+                   
+                   for (int i = 0; i < data.size(); i++) {
+                        lista.add(data.get(i).getIdcliente().toString() + ". " + data.get(i).getPrimer_nombre_cliente() + " " + data.get(i).getPrimer_apellido_cliente());
+                    }
+                             
+                   switch (get.getStatus()) {
+                       case 200:
+                           for (int i = 0; i < lista.size(); i++) {
+                                cmb_cliente.addItem(lista.get(i));
+                            }
+                           break;
+                       default:
+                           res = "Error";
+                           break;
+                   }
+        } catch (Exception ex) {
             Logger.getLogger(Orden.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
-    public void clientesArray(){
-        ArrayList<String> lista = new ArrayList<String>();
-        clientes.add("0|Consumidor Final");
-        try {
-            lista = new Queries().llenarID();
-            for (int i = 0; i < lista.size(); i++) {
-                clientes.add(lista.get(i));
-            }
-        } catch (SQLException ex) {
-            Logger.getLogger(Orden.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }*/
+   
 
     private void actualizarDatos() {
         try {
             String nombreProducto = lbl_nombreProducto.getText();
-            String sql = "SELECT * FROM inventario where nombreproducto = '" + nombreProducto + "'";
-            stmt = con.createStatement();
-            ResultSet rs = stmt.executeQuery(sql);
-            double subtotal = 0;
-            while (rs.next()) {
-                Locale locale = new Locale("es", "HN");
-                NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(locale);
-                DefaultTableModel model = (DefaultTableModel) tbl_orden.getModel();
-                String[] datos = new String[3];
-                datos[0] = rs.getString("nombreproducto");
-                datos[1] = "1";
-                String precio = currencyFormatter.format(rs.getDouble("precio")).substring(1);
-                datos[2] = precio;       
-                model.addRow(datos);
-                subtotal = rs.getDouble("precio");
-                lbl_idProducto.setText(rs.getString("idproducto"));
-                guardarDetalle();
-                int indiceUltimaFila = tbl_orden.getRowCount() - 1;
-                model.removeRow(indiceUltimaFila);
-                String[] datos2 = new String[4];
-                datos2[0] = rs.getString("nombreproducto");
-                datos2[1] = "1";              
-                datos2[2] = precio;
-                datos2[3] = lbl_idDetalle.getText();
-                model.addRow(datos2);
-                
-            }
+            double subtotal = 0;  
+            Locale locale = new Locale("es", "HN");
+            NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(locale);
+            Client client= ClientBuilder.newClient();
+            
+                   WebTarget target = client.target(URL_INVENTARIO+"/nombreproducto/"+nombreProducto);
+                   Invocation.Builder solicitud =target.request();
+                   Response get = solicitud.get();
+                   String responseJson = get.readEntity(String.class);
+                   Producto data = new Gson().fromJson(responseJson, Producto.class);
+                   switch (get.getStatus()) {
+                       case 200:   
+                            DefaultTableModel model = (DefaultTableModel) tbl_orden.getModel();
+                            String[] datos = new String[3];
+                            datos[0] = data.getNombreproducto();
+                            datos[1] = "1";
+                            double precioSinFormato = Double.parseDouble(data.getPrecio());
+                            String precio = currencyFormatter.format(precioSinFormato);
+                            datos[2] = precio;       
+                            model.addRow(datos);
+                            subtotal = Double.parseDouble(data.getPrecio());
+                            lbl_idProducto.setText(data.getIdproducto());
+                            guardarDetalle();
+                            int indiceUltimaFila = tbl_orden.getRowCount() - 1;
+                            model.removeRow(indiceUltimaFila);
+                            String[] datos2 = new String[4];
+                            datos2[0] = data.getNombreproducto();
+                            datos2[1] = "1";              
+                            datos2[2] = precio;
+                            datos2[3] = lbl_idDetalle.getText();
+                            model.addRow(datos2);
+                           break;
+                       default:
+                           res = "Error";
+                           break;
+                   }                 
             double totalAnterior = Double.parseDouble(txt_total.getText());
             double totalNuevo = totalAnterior + subtotal;
 
@@ -140,10 +192,9 @@ public class Orden extends javax.swing.JFrame {
             double subtotalConImpuesto = totalNuevo - isv;
 
             double total = subtotalConImpuesto + isv;
-
-            String subtotalFinal = String.valueOf(subtotalConImpuesto);
-            String isvFinal = String.valueOf(isv);
-            String totalFinal = String.valueOf(total);
+            String subtotalFinal = currencyFormatter.format(subtotalConImpuesto).substring(1);
+            String isvFinal = currencyFormatter.format(isv).substring(1);
+            String totalFinal = currencyFormatter.format(total).substring(1);
             txt_subtotal.setText(subtotalFinal);
             txt_isv.setText(isvFinal);
             txt_total.setText(totalFinal);
@@ -222,6 +273,7 @@ public class Orden extends javax.swing.JFrame {
         txt_total.setText("0");
         txt_pago.setText("");
         cmb_metodoPago.setSelectedItem("Seleccione el método");
+        cmb_metodoPago.setEnabled(false);
         txt_cambio.setText("");
         cmb_cliente.setEnabled(true);
         cmb_cliente.setSelectedItem("1. Consumidor Final");
@@ -232,33 +284,69 @@ public class Orden extends javax.swing.JFrame {
         deleteAllRows(model);
     }
 
-    public String capturarIdEmpleado() {
-        String idEmpleado = "";
-        try {
-            Statement st = con.createStatement();
-            String sql = "Select idempleado from empleado where usuario = '" + lbl_nombreUsuario.getText() + "'";
-            ResultSet rs = st.executeQuery(sql);
-            if (rs.next()) {
-                idEmpleado = rs.getString("idempleado");
-                return idEmpleado;
-            }
-        } catch (SQLException ex) {
-            Logger.getLogger(Empleados.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return idEmpleado;
+    public void capturarIdEmpleado(String usuario){
+        try{        
+                   Client client= ClientBuilder.newClient();
+                   
+                   String path = URL_EMPLEADOS+"/"+usuario;
+                   WebTarget target = client.target(path);
+
+                   Invocation.Builder solicitud =target.request();
+
+                   Response get = solicitud.get();
+
+                   String responseJson = get.readEntity(String.class);
+                   
+                   Empleado data = new Gson().fromJson(responseJson, Empleado.class);       
+                   switch (get.getStatus()) {
+                       case 200:
+                           res = "El usuario ya existe";
+                           idEmpleado = data.getIdempleado();
+                           break;
+                       case 405:
+                           res = "El usuario no existe";
+                           break;
+                   }
+               }catch(Exception e){
+                   res = e.getMessage();
+               }
     }
     
     public void capturarIdFactura() {
         String idFactura = "";
-        try {
-            Statement st = con.createStatement();
-            String sql = "Select top 1 * from factura_encabezado order by idfactura desc";
-            ResultSet rs = st.executeQuery(sql);
-            if (rs.next()) {
-                idFactura = rs.getString("idfactura");
-                lbl_idFactura.setText(idFactura);
-            }
-        } catch (SQLException ex) {
+        ArrayList<String> lista = new ArrayList<String>();
+        try {   
+                   Client client= ClientBuilder.newClient();
+
+                   WebTarget target = client.target(URL_FACTURA_ENCABEZADO + "");
+
+                   //Invocation.Builder solicitud =target.queryParam("id",1).request();
+                   Invocation.Builder solicitud =target.request();
+
+                   Response get = solicitud.get();
+
+
+                   String responseJson = get.readEntity(String.class);                   
+                   
+                   ArrayList<FacturaEncabezado> data = new Gson().fromJson(responseJson,new TypeToken<ArrayList<FacturaEncabezado>>(){}.getType());
+                   
+                   for (int i = 0; i < data.size(); i++) {
+                        lista.add(data.get(i).getIdfactura().toString());
+                    }
+                               
+                   switch (get.getStatus()) {
+                       case 200:
+                           for (int i = 0; i < lista.size(); i++) {
+                                if(i==(lista.size() - 1)){
+                                   idFactura = lista.get(i);
+                                }
+                            }
+                           break;
+                       default:
+                           res = "Error";
+                           break;
+                   }
+        } catch (Exception ex) {
             Logger.getLogger(Empleados.class.getName()).log(Level.SEVERE, null, ex);
         }
         lbl_idFactura.setText(idFactura);
@@ -267,15 +355,15 @@ public class Orden extends javax.swing.JFrame {
     public String capturarIdCliente() {
         String idCliente = "";
         try {
-            Statement st = con.createStatement();
+            /*Statement st = con.createStatement();
             
             String cliente = cmb_cliente.getSelectedItem().toString();
             String[] textoSeparado = cliente.split(".");
             for (int i = 0; i < textoSeparado.length; i++) {
                 String string = textoSeparado[i];
                 JOptionPane.showMessageDialog(this,string);
-            }
-        } catch (SQLException ex) {
+            }*/
+        } catch (Exception ex) {
             Logger.getLogger(Empleados.class.getName()).log(Level.SEVERE, null, ex);
         }
         return idCliente;
@@ -283,29 +371,74 @@ public class Orden extends javax.swing.JFrame {
     
     public void guardarDetalle(){
         try { 
-            PreparedStatement ps;
-            ResultSet rs;    
-            ps = con.prepareStatement("INSERT INTO factura_detalle (idfactura, idproducto, cantidadfactura, precio)"
-                    + "VALUES(?,?,?,?)");
-            ps.setString(1, lbl_idFactura.getText());
-            ps.setString(2, lbl_idProducto.getText());
-            int indiceUltimaFila = tbl_orden.getRowCount() - 1;
-            String cantidadProducto = tbl_orden.getValueAt(indiceUltimaFila, 1).toString();
-            String precio = tbl_orden.getValueAt(indiceUltimaFila, 2).toString();
-            ps.setString(3, cantidadProducto);
-            ps.setString(4, precio);
-            int res = ps.executeUpdate();
-            if (res > 0) {  
-                Statement st = con.createStatement();
-                String sql = "Select top 1 * from factura_detalle order by iddetalle desc";
-                ResultSet rs1 = st.executeQuery(sql);
-                if (rs1.next()) {
-                     lbl_idDetalle.setText(rs1.getString("iddetalle"));
-                }
-            }
+            
+                    Client client= ClientBuilder.newClient();
+                    WebTarget target = client.target(URL_FACTURA_DETALLE + "/addfacturadetalle");
+                    Invocation.Builder solicitud =target.request();
+                    FacturaDetalle facturaDetalle = new FacturaDetalle();           
+                    facturaDetalle.setIdfactura(Long.parseLong(lbl_idFactura.getText()));     
+                    facturaDetalle.setIdproducto(Long.parseLong(lbl_idProducto.getText()));
+                    int indiceUltimaFila = tbl_orden.getRowCount() - 1;
+                    String cantidadProducto = tbl_orden.getValueAt(indiceUltimaFila, 1).toString();
+                    String precio = tbl_orden.getValueAt(indiceUltimaFila, 2).toString().substring(1);
+                    facturaDetalle.setCantidadfactura(cantidadProducto);
+                    facturaDetalle.setPrecio(precio);
+                    Gson gson = new Gson();
+                    String jsonString = gson.toJson(facturaDetalle);
+                    Response post = solicitud.post(Entity.json(jsonString));
+                    String responseJson = post.readEntity(String.class);
+                    FacturaEncabezado data = new Gson().fromJson(responseJson, FacturaEncabezado.class);           
+                    switch (post.getStatus()) {
+                        case 201:
+                             res = "Factura iniciada exitosamente";
+                             capturarIdDetalle();
+                             break;
+                        default:
+                            res = "Error factura";
+                            JOptionPane.showMessageDialog(null,res);
+                            break;
+                    }
+        
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, e.getMessage());
         }
+    }
+    
+    public void capturarIdDetalle() {
+        String idDetalle = "";
+        ArrayList<String> lista = new ArrayList<String>();
+        try {   
+                   Client client= ClientBuilder.newClient();
+
+                   WebTarget target = client.target(URL_FACTURA_DETALLE + "");
+                   //Invocation.Builder solicitud =target.queryParam("id",1).request();
+                   Invocation.Builder solicitud =target.request();
+                   Response get = solicitud.get();
+                   String responseJson = get.readEntity(String.class);                   
+                   
+                   ArrayList<FacturaDetalle> data = new Gson().fromJson(responseJson,new TypeToken<ArrayList<FacturaDetalle>>(){}.getType());
+                   
+                   for (int i = 0; i < data.size(); i++) {
+                        lista.add(data.get(i).getIddetalle().toString());
+                    }
+                               
+                   switch (get.getStatus()) {
+                       case 200:
+                           for (int i = 0; i < lista.size(); i++) {
+                                if(i==(lista.size() - 1)){
+                                   idDetalle = lista.get(i);
+                                }
+                            }
+                           break;
+                       default:
+                           res = "Error detalle";
+                           JOptionPane.showMessageDialog(null,res);
+                           break;
+                   }
+        } catch (Exception ex) {
+            Logger.getLogger(Empleados.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        lbl_idDetalle.setText(idDetalle);
     }
     
     public void validacionPago(){
@@ -338,15 +471,16 @@ public class Orden extends javax.swing.JFrame {
     }
     
     public void imprimirFactura(){
-        try {
+        try { 
             JasperReport reporte = null;
-            String path = "src\\reportes\\factura.jasper";
+            String path = "src\\main\\java\\ujcv\\edu\\hn\\reportes\\factura.jasper";
             Map<String, Object> parameters = new HashMap<>();
             parameters.put("numeroFactura",lbl_idFactura.getText());
             parameters.put("cai","35BD6A-0195F4-B34BAA-8B7D13-37791A-2D");
             reporte = (JasperReport) JRLoader.loadObjectFromFile(path);
             JasperPrint jprint;
-            jprint=JasperFillManager.fillReport(reporte,parameters,con);
+            JasperPrint jprint2;
+            jprint=JasperFillManager.fillReport(reporte,parameters,con);  
             JasperViewer view = new JasperViewer(jprint,false);
             final JRViewer viewer = new JRViewer(jprint);
             JRSaveContributor[] contrbs = viewer.getSaveContributors();
@@ -368,9 +502,7 @@ public class Orden extends javax.swing.JFrame {
     
     public void actualizarTotal(){
        double isv = totalPrecioOrden * 0.15;
-       
        double subtotal = totalPrecioOrden - isv;
-       
        txt_total.setText(String.valueOf(totalPrecioOrden));
        txt_isv.setText(String.valueOf(isv));
        txt_subtotal.setText(String.valueOf(subtotal));
@@ -458,7 +590,7 @@ public class Orden extends javax.swing.JFrame {
         lbl_nombreUsuario.setFont(new java.awt.Font("Roboto Black", 0, 24)); // NOI18N
         lbl_nombreUsuario.setText("Nombre de Usuario");
 
-        lbl_home.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/home-icon-silhouette.png"))); // NOI18N
+        lbl_home.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\home-icon-silhouette.png"));
         lbl_home.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         lbl_home.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
@@ -466,7 +598,7 @@ public class Orden extends javax.swing.JFrame {
             }
         });
 
-        lbl_usuario.setIcon(new javax.swing.ImageIcon(getClass().getResource("/ujcv/edu/hn/Img/profile.png"))); // NOI18N
+        lbl_usuario.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\profile.png"));
         lbl_usuario.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
 
         lbl_tituloClientes.setFont(new java.awt.Font("Roboto Black", 0, 48)); // NOI18N
@@ -656,7 +788,7 @@ public class Orden extends javax.swing.JFrame {
         jpn_productos.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
 
         btn_producto1.setFont(new java.awt.Font("Roboto", 1, 18)); // NOI18N
-        btn_producto1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/baleadasencilla.jpg"))); // NOI18N
+        btn_producto1.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\baleadasencilla.jpg"));
         btn_producto1.setText("Baleada Sencilla");
         btn_producto1.setToolTipText("");
         btn_producto1.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -670,7 +802,7 @@ public class Orden extends javax.swing.JFrame {
         });
 
         btn_producto2.setFont(new java.awt.Font("Roboto", 1, 18)); // NOI18N
-        btn_producto2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/baleadacarne.jpg"))); // NOI18N
+        btn_producto2.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\baleadacarne.jpg"));
         btn_producto2.setText("Baleada Carne");
         btn_producto2.setToolTipText("");
         btn_producto2.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -684,7 +816,7 @@ public class Orden extends javax.swing.JFrame {
         });
 
         btn_producto3.setFont(new java.awt.Font("Roboto", 1, 18)); // NOI18N
-        btn_producto3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/baleada-con-Todo.png"))); // NOI18N
+        btn_producto3.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\baleada-con-todo.png"));
         btn_producto3.setText("Baleada con Todo");
         btn_producto3.setToolTipText("");
         btn_producto3.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -698,7 +830,7 @@ public class Orden extends javax.swing.JFrame {
         });
 
         btn_producto4.setFont(new java.awt.Font("Roboto", 1, 18)); // NOI18N
-        btn_producto4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/carneasada.jpg"))); // NOI18N
+        btn_producto4.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\carneasada.jpg"));
         btn_producto4.setText("Carne Asada");
         btn_producto4.setToolTipText("");
         btn_producto4.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -712,7 +844,7 @@ public class Orden extends javax.swing.JFrame {
         });
 
         btn_producto5.setFont(new java.awt.Font("Roboto", 1, 18)); // NOI18N
-        btn_producto5.setIcon(new javax.swing.ImageIcon("C:\\Users\\cmcha\\Documents\\NetBeansProjects\\BaleadasHermanas\\BaleadasHermanas\\src\\Img\\pollo.png")); // NOI18N
+        btn_producto5.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\pollo.png"));
         btn_producto5.setText("Pollo Chuco");
         btn_producto5.setToolTipText("");
         btn_producto5.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -726,7 +858,7 @@ public class Orden extends javax.swing.JFrame {
         });
 
         btn_producto6.setFont(new java.awt.Font("Roboto", 1, 18)); // NOI18N
-        btn_producto6.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/cena.jpg"))); // NOI18N
+        btn_producto6.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\cena.jpg"));
         btn_producto6.setText("Cena Típica");
         btn_producto6.setToolTipText("");
         btn_producto6.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -740,7 +872,7 @@ public class Orden extends javax.swing.JFrame {
         });
 
         btn_producto7.setFont(new java.awt.Font("Roboto", 1, 18)); // NOI18N
-        btn_producto7.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/refresconatural.jpeg"))); // NOI18N
+        btn_producto7.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\refresconatural.jpeg"));
         btn_producto7.setText("Refresco Natural");
         btn_producto7.setToolTipText("");
         btn_producto7.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -754,7 +886,7 @@ public class Orden extends javax.swing.JFrame {
         });
 
         btn_producto8.setFont(new java.awt.Font("Roboto", 1, 18)); // NOI18N
-        btn_producto8.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/logococa.jpg"))); // NOI18N
+        btn_producto8.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\logococa.jpg"));
         btn_producto8.setText("Gaseosa");
         btn_producto8.setToolTipText("");
         btn_producto8.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -768,7 +900,7 @@ public class Orden extends javax.swing.JFrame {
         });
 
         btn_producto9.setFont(new java.awt.Font("Roboto", 1, 18)); // NOI18N
-        btn_producto9.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/desayunojpg.jpg"))); // NOI18N
+        btn_producto9.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\desayunojpg.jpg"));
         btn_producto9.setText("Desayuno Típico");
         btn_producto9.setToolTipText("");
         btn_producto9.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -1099,7 +1231,7 @@ public class Orden extends javax.swing.JFrame {
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
-        lbl_cliente.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/cliente.png"))); // NOI18N
+        lbl_cliente.setIcon(new javax.swing.ImageIcon("src\\main\\java\\ujcv\\edu\\hn\\Img\\cliente.png"));
         lbl_cliente.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 lbl_clienteMousePressed(evt);
@@ -1135,7 +1267,12 @@ public class Orden extends javax.swing.JFrame {
                         .addContainerGap()
                         .addComponent(lbl_usuario)
                         .addGap(18, 18, 18)
-                        .addComponent(lbl_nombreUsuario)
+                        .addGroup(jpn_principalLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(lbl_nombreUsuario)
+                            .addGroup(jpn_principalLayout.createSequentialGroup()
+                                .addComponent(lbl_idFactura)
+                                .addGap(74, 74, 74)
+                                .addComponent(lbl_idDetalle)))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addGroup(jpn_principalLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jpn_principalLayout.createSequentialGroup()
@@ -1147,12 +1284,9 @@ public class Orden extends javax.swing.JFrame {
                                 .addGap(34, 34, 34)
                                 .addComponent(lbl_home))
                             .addGroup(jpn_principalLayout.createSequentialGroup()
-                                .addComponent(lbl_idDetalle)
-                                .addGap(153, 153, 153)
+                                .addGap(194, 194, 194)
                                 .addComponent(lbl_idProducto)
-                                .addGap(126, 126, 126)
-                                .addComponent(lbl_idFactura)
-                                .addGap(137, 137, 137)
+                                .addGap(308, 308, 308)
                                 .addComponent(lbl_idCliente)
                                 .addGap(140, 140, 140)
                                 .addComponent(lbl_nombreProducto))))
@@ -1177,9 +1311,7 @@ public class Orden extends javax.swing.JFrame {
                         .addGroup(jpn_principalLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(lbl_nombreProducto)
                             .addComponent(lbl_idCliente)
-                            .addComponent(lbl_idFactura)
-                            .addComponent(lbl_idProducto)
-                            .addComponent(lbl_idDetalle))
+                            .addComponent(lbl_idProducto))
                         .addGap(18, 18, 18)
                         .addComponent(cmb_cliente, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(jpn_principalLayout.createSequentialGroup()
@@ -1191,7 +1323,11 @@ public class Orden extends javax.swing.JFrame {
                             .addComponent(lbl_home, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 76, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(lbl_cliente, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE)))
                     .addGroup(jpn_principalLayout.createSequentialGroup()
-                        .addGap(38, 38, 38)
+                        .addGap(13, 13, 13)
+                        .addGroup(jpn_principalLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(lbl_idFactura)
+                            .addComponent(lbl_idDetalle))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(jpn_principalLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(lbl_nombreUsuario, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(lbl_tituloClientes, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE))))
@@ -1414,13 +1550,44 @@ public class Orden extends javax.swing.JFrame {
             f = Calendar.getInstance();
             int d = f.get(Calendar.DATE), mes = 1 + (f.get(Calendar.MONTH)), año = f.get(Calendar.YEAR);
             String fecha = (año + "-" + mes + "-" + d);
-            PreparedStatement ps;
-            ResultSet rs;
             String cai = "35BD6A-0195F4-B34BAA-8B7D13-37791A-2D";
             int totalInicial = 0;
             int cambioInicial = 0;
             int pagoInicial = 0;
-            ps = con.prepareStatement("INSERT INTO factura_encabezado (cai, idempleado, totalfactura, idcliente,"
+            
+                    Client client= ClientBuilder.newClient();
+                    WebTarget target = client.target(URL_FACTURA_ENCABEZADO + "/addfacturaencabezado");
+                    Invocation.Builder solicitud =target.request();
+                    FacturaEncabezado facturaEncabezado = new FacturaEncabezado();
+                    facturaEncabezado.setCai(cai);
+                    String idCliente = lbl_idCliente.getText();
+                    capturarIdEmpleado(lbl_nombreUsuario.getText());           
+                    facturaEncabezado.setIdempleado(String.valueOf(idEmpleado));
+                    facturaEncabezado.setTotalfactura(String.valueOf(totalInicial));
+                    facturaEncabezado.setIdcliente(Long.parseLong(idCliente));
+                    facturaEncabezado.setFecha_factura(fecha);
+                    facturaEncabezado.setCambio_factura(String.valueOf(cambioInicial));
+                    facturaEncabezado.setPago_factura(String.valueOf(pagoInicial));
+                    Gson gson = new Gson();
+                    String jsonString = gson.toJson(facturaEncabezado);
+                    Response post = solicitud.post(Entity.json(jsonString));
+                    String responseJson = post.readEntity(String.class);
+                    FacturaEncabezado data = new Gson().fromJson(responseJson, FacturaEncabezado.class);           
+                    switch (post.getStatus()) {
+                        case 201:
+                             res = "Factura iniciada exitosamente";
+                             capturarIdFactura();
+                             habilitarProductos(true);
+                             cmb_cliente.setEnabled(false);
+                             accionesIniciar();
+                             break;
+                        default:
+                            res = "Error";
+                            JOptionPane.showMessageDialog(null,res);
+                            break;
+                    }
+            
+            /*ps = con.prepareStatement("INSERT INTO factura_encabezado (cai, idempleado, totalfactura, idcliente,"
                     + "fecha_factura,cambio_factura,pago_factura)"
                     + "VALUES(?,?,?,?,?,?,?)");
             ps.setString(1, cai);
@@ -1434,11 +1601,8 @@ public class Orden extends javax.swing.JFrame {
             ps.setString(7, String.valueOf(pagoInicial));
             int res = ps.executeUpdate();
             if (res > 0) {
-                capturarIdFactura();
-                habilitarProductos(true);
-                cmb_cliente.setEnabled(false);
-                accionesIniciar();
-            }
+                
+            }*/
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, e.getMessage());
         }
@@ -1448,25 +1612,44 @@ public class Orden extends javax.swing.JFrame {
     private void btn_pagarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_pagarActionPerformed
         btn_pagar.setBackground(new Color(40, 74, 172));
         try{
-           validacionPago(); 
-           PreparedStatement ps;
-            ResultSet rs;
-            ps = con.prepareStatement("Update factura_encabezado\n" +
-                                      "set totalfactura = ?,\n" +
-                                      "cambio_factura = ?, \n" +
-                                      "pago_factura =? "+
-                                      "where idfactura = ?");
-            ps.setString(1, txt_total.getText());
-            String cambio = txt_cambio.getText().substring(1);
-            ps.setString(2, cambio);
-            ps.setString(3, txt_pago.getText());
-            ps.setString(4, lbl_idFactura.getText());
-            int res = ps.executeUpdate();
-            if (res > 0) {
-                JOptionPane.showMessageDialog(this, "Factura pagada");
-                imprimirFactura();
-                accionesCancelar();
-            }
+                    String cai = "35BD6A-0195F4-B34BAA-8B7D13-37791A-2D";
+                    Calendar f;
+                    f = Calendar.getInstance();
+                    int d = f.get(Calendar.DATE), mes = 1 + (f.get(Calendar.MONTH)), año = f.get(Calendar.YEAR);
+                    String fecha = (año + "-" + mes + "-" + d);
+                    validacionPago();
+                    
+                    Client client= ClientBuilder.newClient();
+                    WebTarget target = client.target(URL_FACTURA_ENCABEZADO + "/addfacturaencabezado");
+                    Invocation.Builder solicitud =target.request();
+                    FacturaEncabezado facturaEncabezado = new FacturaEncabezado();
+                    facturaEncabezado.setIdfactura(Long.parseLong(lbl_idFactura.getText()));
+                    facturaEncabezado.setCai(cai);
+                    String idCliente = lbl_idCliente.getText();
+                    capturarIdEmpleado(lbl_nombreUsuario.getText());           
+                    facturaEncabezado.setIdempleado(String.valueOf(idEmpleado));
+                    facturaEncabezado.setTotalfactura(txt_total.getText());
+                    facturaEncabezado.setIdcliente(Long.parseLong(idCliente));
+                    facturaEncabezado.setFecha_factura(fecha);
+                    String cambio = txt_cambio.getText().substring(1);
+                    facturaEncabezado.setCambio_factura(String.valueOf(cambio));
+                    facturaEncabezado.setPago_factura(String.valueOf(txt_pago.getText()));
+                    Gson gson = new Gson();
+                    String jsonString = gson.toJson(facturaEncabezado);
+                    Response post = solicitud.post(Entity.json(jsonString));
+                    String responseJson = post.readEntity(String.class);
+                    FacturaEncabezado data = new Gson().fromJson(responseJson, FacturaEncabezado.class);           
+                    switch (post.getStatus()) {
+                        case 201:
+                                JOptionPane.showMessageDialog(this, "Factura pagada");
+                                imprimirFactura();
+                                accionesCancelar();
+                             break;
+                        default:
+                            res = "Error";
+                            JOptionPane.showMessageDialog(null,res);
+                            break;
+                    }
         }catch(Exception e){
             
         }
@@ -1477,18 +1660,36 @@ public class Orden extends javax.swing.JFrame {
     private void btn_cancelarFacturaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cancelarFacturaActionPerformed
         btn_cancelarFactura.setBackground(new Color(40, 74, 172));
         try {
-                PreparedStatement ps;
-                ps = con.prepareStatement("Delete factura_detalle\n"
-                        + "where idfactura =?");   
-                ps.setString(1, lbl_idFactura.getText());
-                
-                PreparedStatement ps2;
-                ps2 = con.prepareStatement("Delete factura_encabezado\n"
-                        + "where idfactura =?");   
-                ps2.setString(1, lbl_idFactura.getText());
-                
-                JOptionPane.showMessageDialog(this, "Factura cancelada");
-                accionesCancelar();  
+                            Client client2= ClientBuilder.newClient();
+                            WebTarget target2 = client2.target(URL_FACTURA_DETALLE + "/deleteAll/"+lbl_idFactura.getText());
+                            Invocation.Builder solicitud2 =target2.request();
+                            Response delete2 = solicitud2.delete();
+                            String responseJson2 = delete2.readEntity(String.class);
+                            switch(delete2.getStatus()){    
+                                case 200:
+                                Client client= ClientBuilder.newClient();
+                                WebTarget target = client.target(URL_FACTURA_ENCABEZADO + "/delete/"+lbl_idFactura.getText());
+                                Invocation.Builder solicitud =target.request();
+                                Response delete = solicitud.delete();
+                                String responseJson = delete.readEntity(String.class);
+                                switch (delete.getStatus()) {
+                                    case 200:
+                                        res = "Factura cancelada exitosamente";
+                                        JOptionPane.showMessageDialog(null,res);
+                                        accionesCancelar();
+                                        break;
+                                    default:
+                                        res = "Error";
+                                        JOptionPane.showMessageDialog(null,res);
+                                        break;
+                                }            
+                                break;
+                                
+                                default:
+                                res = "Error: No se pudo eliminar la factura";
+                                JOptionPane.showMessageDialog(null,res);
+                                break;
+                            }
 
             } catch (Exception e) {
 
@@ -1530,29 +1731,32 @@ public class Orden extends javax.swing.JFrame {
     private void btn_eliminarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_eliminarActionPerformed
         btn_eliminar.setBackground(new Color(40, 74, 172));
             try {
-                PreparedStatement ps;
-                ResultSet rs;
-                ps = con.prepareStatement("Delete factura_detalle\n"
-                        + "where iddetalle =?");   
-                String idDetalle = tbl_orden.getValueAt(filaSeleccionada, 3).toString();
-                ps.setString(1, idDetalle);
-                int res = ps.executeUpdate();
-                if (res > 0) {
-                    JOptionPane.showMessageDialog(this, "Producto eliminado");
-                    DefaultTableModel model = (DefaultTableModel) tbl_orden.getModel();
-                    model.removeRow(filaSeleccionada);
-                    int totalFilas = tbl_orden.getRowCount();
-                    totalPrecioOrden = 0;
-                    for (int i = 0; i < totalFilas; i++) {
-                        totalPrecioOrden += Double.parseDouble(tbl_orden.getValueAt(i, 2).toString()); 
-                    }
-                    
-                    actualizarTotal();
-                    btn_eliminar.setEnabled(false);
-                }
-
+                   Client client= ClientBuilder.newClient();
+                   String idDetalle = tbl_orden.getValueAt(filaSeleccionada, 3).toString();
+                   WebTarget target = client.target(URL_FACTURA_DETALLE + "/delete/"+idDetalle);
+                   Invocation.Builder solicitud =target.request();
+                   Response delete = solicitud.delete();
+                   String responseJson = delete.readEntity(String.class);
+                   switch (delete.getStatus()) {
+                       case 200:
+                            JOptionPane.showMessageDialog(this, "Producto eliminado");
+                            DefaultTableModel model = (DefaultTableModel) tbl_orden.getModel();
+                            model.removeRow(filaSeleccionada);
+                            int totalFilas = tbl_orden.getRowCount();
+                            totalPrecioOrden = 0;
+                            for (int i = 0; i < totalFilas; i++) {
+                                totalPrecioOrden += Double.parseDouble(tbl_orden.getValueAt(i, 2).toString().substring(1));                            
+                            }   
+                            actualizarTotal();
+                            btn_eliminar.setEnabled(false);
+                           break;
+                       default:
+                           res = "Error";
+                           JOptionPane.showMessageDialog(null,res);
+                           break;
+                   }
             } catch (Exception e) {
-
+                JOptionPane.showMessageDialog(this,e.getMessage());
             }
 
         // TODO add your handling code here:
