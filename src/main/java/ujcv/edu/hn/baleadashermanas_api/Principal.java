@@ -9,7 +9,6 @@ import java.awt.Color;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 
 /**
@@ -87,6 +86,11 @@ public class Principal extends javax.swing.JFrame {
                 btn_empleadosMousePressed(evt);
             }
         });
+        btn_empleados.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_empleadosActionPerformed(evt);
+            }
+        });
 
         btn_ordenes.setBackground(new java.awt.Color(205, 63, 145));
         btn_ordenes.setFont(new java.awt.Font("Roboto Black", 0, 24)); // NOI18N
@@ -119,6 +123,11 @@ public class Principal extends javax.swing.JFrame {
             }
             public void mousePressed(java.awt.event.MouseEvent evt) {
                 btn_clientesMousePressed(evt);
+            }
+        });
+        btn_clientes.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_clientesActionPerformed(evt);
             }
         });
 
@@ -266,7 +275,7 @@ public class Principal extends javax.swing.JFrame {
             empleado = new Empleados(lbl_nombreUsuario.getText());
             this.dispose();
             empleado.setVisible(true);
-        } catch (SQLException ex) {
+        } catch (Exception ex) {
             Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
         }
                 // TODO add your handling code here:
@@ -289,7 +298,7 @@ public class Principal extends javax.swing.JFrame {
             orden = new Orden(lbl_nombreUsuario.getText());
             this.dispose();
             orden.setVisible(true);
-        } catch (SQLException ex) {
+        } catch (Exception ex) {
             Logger.getLogger(Principal.class.getName()).log(Level.SEVERE, null, ex);
         }
         
@@ -370,6 +379,14 @@ public class Principal extends javax.swing.JFrame {
         lbl_cerrarSesion.setIcon(new javax.swing.ImageIcon("C:\\Users\\cmcha\\Documents\\NetBeansProjects\\BaleadasHermanas\\BaleadasHermanas\\src\\Img\\cerrar-sesion.png"));
         // TODO add your handling code here:
     }//GEN-LAST:event_lbl_cerrarSesionMouseExited
+
+    private void btn_empleadosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_empleadosActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btn_empleadosActionPerformed
+
+    private void btn_clientesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_clientesActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btn_clientesActionPerformed
 
     /**
      * @param args the command line arguments

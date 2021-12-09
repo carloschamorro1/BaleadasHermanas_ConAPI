@@ -9,15 +9,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.placeholder.PlaceHolder;
 import java.awt.Color;
-import java.awt.List;
 import java.awt.Toolkit;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -26,14 +18,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
-import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE;
-import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableColumn;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -53,12 +41,8 @@ import ujcv.edu.hn.baleadashermanas_api.model.FacturaDetalle;
 import ujcv.edu.hn.baleadashermanas_api.model.FacturaEncabezado;
 import ujcv.edu.hn.baleadashermanas_api.model.Producto;
 
-
-//necesario solo para la creacion del PDF
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import ujcv.edu.hn.BD.ConexionBD;
+import net.sf.jasperreports.engine.JREmptyDataSource;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 
 
 
@@ -78,23 +62,30 @@ public class Orden extends javax.swing.JFrame {
     String res = "";
     int filaSeleccionada;
     long idEmpleado = 0;
-    private static Connection con = null;
+    String nombreEmpleado = "";
+    String nombreCliente = "";
+    String rtnCliente = "";
+    String totalFactura = "";
+    String cambioFactura = "";
+    String pagoFactura="";
+    Locale locale = new Locale("es", "HN");
+    NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(locale);
 
+    ArrayList<Producto> productoNuevo = new ArrayList<Producto>();
     /**
      * Creates new form Orden
      */
-    public Orden(String nombreUsuario) throws SQLException {
+    public Orden(String nombreUsuario){
         initComponents();
         informacionGeneral();
         txt_subtotal.requestFocus();
         lbl_nombreUsuario.setText(nombreUsuario);
         lbl_nombreProducto.setVisible(false);
-        //lbl_idFactura.setVisible(false);
+        lbl_idFactura.setVisible(false);
         lbl_idCliente.setVisible(false);
         lbl_idProducto.setVisible(false);
-        //lbl_idDetalle.setVisible(false);     
+        lbl_idDetalle.setVisible(false);     
         buscarClientes();
-        this.con = ConexionBD.obtenerConexion();
     }
 
     public Orden() {
@@ -149,11 +140,8 @@ public class Orden extends javax.swing.JFrame {
     private void actualizarDatos() {
         try {
             String nombreProducto = lbl_nombreProducto.getText();
-            double subtotal = 0;  
-            Locale locale = new Locale("es", "HN");
-            NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(locale);
+            double subtotal = 0;          
             Client client= ClientBuilder.newClient();
-            
                    WebTarget target = client.target(URL_INVENTARIO+"/nombreproducto/"+nombreProducto);
                    Invocation.Builder solicitud =target.request();
                    Response get = solicitud.get();
@@ -171,6 +159,13 @@ public class Orden extends javax.swing.JFrame {
                             model.addRow(datos);
                             subtotal = Double.parseDouble(data.getPrecio());
                             lbl_idProducto.setText(data.getIdproducto());
+
+                            Producto producto  = new Producto();
+                            producto.setNombreproducto(data.getNombreproducto());
+                            producto.setCantidadstock("1");
+                            producto.setPrecio(precio);
+                            productoNuevo.add(producto);
+                            
                             guardarDetalle();
                             int indiceUltimaFila = tbl_orden.getRowCount() - 1;
                             model.removeRow(indiceUltimaFila);
@@ -302,6 +297,7 @@ public class Orden extends javax.swing.JFrame {
                        case 200:
                            res = "El usuario ya existe";
                            idEmpleado = data.getIdempleado();
+                           nombreEmpleado = data.getPrimer_nombre_empleado() + " " + data.getPrimer_apellido_empleado();
                            break;
                        case 405:
                            res = "El usuario no existe";
@@ -352,21 +348,36 @@ public class Orden extends javax.swing.JFrame {
         lbl_idFactura.setText(idFactura);
     }
 
-    public String capturarIdCliente() {
-        String idCliente = "";
+    public String capturarNombreCliente(Long id) {
+        String nombreCliente = "";
         try {
-            /*Statement st = con.createStatement();
-            
-            String cliente = cmb_cliente.getSelectedItem().toString();
-            String[] textoSeparado = cliente.split(".");
-            for (int i = 0; i < textoSeparado.length; i++) {
-                String string = textoSeparado[i];
-                JOptionPane.showMessageDialog(this,string);
-            }*/
+            Client client= ClientBuilder.newClient();
+                   
+                   String path = URL_CLIENTES+"/id/"+id;
+                   WebTarget target = client.target(path);
+
+                   Invocation.Builder solicitud =target.request();
+
+                   Response get = solicitud.get();
+
+                   String responseJson = get.readEntity(String.class);
+                   
+                    Cliente data = new Gson().fromJson(responseJson, Cliente.class);       
+                   switch (get.getStatus()) {
+                       case 200:
+                           res = "El usuario ya existe";
+                           nombreCliente = data.getPrimer_nombre_cliente() + " " + data.getPrimer_apellido_cliente();
+                           rtnCliente = data.getRtncliente();
+                           break;
+                       case 405:
+                           res = "El usuario no existe";
+                           break;
+                   }
+           
         } catch (Exception ex) {
             Logger.getLogger(Empleados.class.getName()).log(Level.SEVERE, null, ex);
         }
-        return idCliente;
+        return nombreCliente;
     }
     
     public void guardarDetalle(){
@@ -477,10 +488,20 @@ public class Orden extends javax.swing.JFrame {
             Map<String, Object> parameters = new HashMap<>();
             parameters.put("numeroFactura",lbl_idFactura.getText());
             parameters.put("cai","35BD6A-0195F4-B34BAA-8B7D13-37791A-2D");
+            parameters.put("nombreEmpleado",nombreEmpleado);
+            parameters.put("nombreCliente",nombreCliente);
+            parameters.put("rtnCliente",rtnCliente);
+            String totalConFormato = currencyFormatter.format(Double.parseDouble(totalFactura));
+            String pagoConFormato = currencyFormatter.format(Double.parseDouble(pagoFactura));
+            parameters.put("totalFactura",totalConFormato);
+            parameters.put("cambioFactura",cambioFactura);
+            parameters.put("pagoFactura",pagoConFormato);
             reporte = (JasperReport) JRLoader.loadObjectFromFile(path);
             JasperPrint jprint;
-            JasperPrint jprint2;
-            jprint=JasperFillManager.fillReport(reporte,parameters,con);  
+            
+            JRBeanCollectionDataSource ds = new JRBeanCollectionDataSource(productoNuevo);
+            parameters.put("ds", ds);
+            jprint=JasperFillManager.fillReport(reporte,parameters,new JREmptyDataSource());  
             JasperViewer view = new JasperViewer(jprint,false);
             final JRViewer viewer = new JRViewer(jprint);
             JRSaveContributor[] contrbs = viewer.getSaveContributors();
@@ -1586,23 +1607,6 @@ public class Orden extends javax.swing.JFrame {
                             JOptionPane.showMessageDialog(null,res);
                             break;
                     }
-            
-            /*ps = con.prepareStatement("INSERT INTO factura_encabezado (cai, idempleado, totalfactura, idcliente,"
-                    + "fecha_factura,cambio_factura,pago_factura)"
-                    + "VALUES(?,?,?,?,?,?,?)");
-            ps.setString(1, cai);
-            String idEmpleado = capturarIdEmpleado();
-            String idCliente = lbl_idCliente.getText();
-            ps.setString(2, idEmpleado);
-            ps.setString(3, String.valueOf(totalInicial));
-            ps.setString(4, idCliente);
-            ps.setString(5, fecha);
-            ps.setString(6, String.valueOf(cambioInicial));
-            ps.setString(7, String.valueOf(pagoInicial));
-            int res = ps.executeUpdate();
-            if (res > 0) {
-                
-            }*/
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, e.getMessage());
         }
@@ -1624,8 +1628,9 @@ public class Orden extends javax.swing.JFrame {
                     Invocation.Builder solicitud =target.request();
                     FacturaEncabezado facturaEncabezado = new FacturaEncabezado();
                     facturaEncabezado.setIdfactura(Long.parseLong(lbl_idFactura.getText()));
-                    facturaEncabezado.setCai(cai);
+                    facturaEncabezado.setCai(cai);              
                     String idCliente = lbl_idCliente.getText();
+                    nombreCliente = capturarNombreCliente(Long.parseLong(idCliente));
                     capturarIdEmpleado(lbl_nombreUsuario.getText());           
                     facturaEncabezado.setIdempleado(String.valueOf(idEmpleado));
                     facturaEncabezado.setTotalfactura(txt_total.getText());
@@ -1642,6 +1647,9 @@ public class Orden extends javax.swing.JFrame {
                     switch (post.getStatus()) {
                         case 201:
                                 JOptionPane.showMessageDialog(this, "Factura pagada");
+                                totalFactura = txt_total.getText();
+                                cambioFactura = txt_cambio.getText();
+                                pagoFactura = txt_pago.getText();
                                 imprimirFactura();
                                 accionesCancelar();
                              break;

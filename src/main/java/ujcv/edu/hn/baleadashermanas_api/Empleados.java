@@ -8,21 +8,9 @@ package ujcv.edu.hn.baleadashermanas_api;
 import com.google.gson.Gson;
 import com.placeholder.PlaceHolder;
 import java.awt.Color;
-import java.awt.HeadlessException;
 import java.awt.Toolkit;
-import java.net.URL;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.text.NumberFormat;
-import java.util.Locale;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.ws.rs.client.Client;
@@ -50,7 +38,7 @@ public class Empleados extends javax.swing.JFrame {
      * @param nombreUsuario
      * @throws java.sql.SQLException
      */
-    public Empleados(String nombreUsuario) throws SQLException {
+    public Empleados(String nombreUsuario){
         initComponents();
         informacionGeneral();
         holders();
