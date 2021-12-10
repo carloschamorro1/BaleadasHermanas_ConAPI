@@ -1747,6 +1747,8 @@ public class Orden extends javax.swing.JFrame {
                    String responseJson = delete.readEntity(String.class);
                    switch (delete.getStatus()) {
                        case 200:
+                           
+                            productoNuevo.remove((filaSeleccionada));                         
                             JOptionPane.showMessageDialog(this, "Producto eliminado");
                             DefaultTableModel model = (DefaultTableModel) tbl_orden.getModel();
                             model.removeRow(filaSeleccionada);
